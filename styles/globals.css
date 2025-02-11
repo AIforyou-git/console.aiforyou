@@ -1,0 +1,42 @@
+// components/Header.tsx (共通ヘッダーコンポーネント)
+"use client";
+import Link from "next/link";
+import styles from "../styles/header.module.css";
+import { usePathname } from "next/navigation";
+
+export default function Header() {
+  const pathname = usePathname();
+
+  // ログインページではヘッダーを表示しない
+  if (pathname === "/login") return null;
+
+  return (
+    <header className={styles.header}>
+      <div className={styles.logo}>AIforyou</div>
+      <nav>
+        <ul className={styles.menu}>
+          <li><Link href="/dashboard" className={styles.navIcon} title="ホーム"><i className="fas fa-home"></i></Link></li>
+          <li><Link href="/customers/create" className={styles.navIcon} title="顧客登録"><i className="fas fa-user-plus"></i></Link></li>
+          <li><Link href="/customers" className={styles.navIcon} title="顧客一覧"><i className="fas fa-users"></i></Link></li>
+          <li><Link href="/settings" className={styles.navIcon} title="設定"><i className="fas fa-cog"></i></Link></li>
+          <li><Link href="/info" className={styles.navIcon} title="情報"><i className="fas fa-info-circle"></i></Link></li>
+          <li><Link href="/logout" className={styles.navIcon} title="ログアウト"><i className="fas fa-sign-out-alt"></i></Link></li>
+        </ul>
+      </nav>
+    </header>
+  );
+}
+
+// app/layout.tsx (共通レイアウトにヘッダーを追加)
+import Header from "@/components/Header";
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="ja">
+      <body>
+        <Header />
+        <main>{children}</main>
+      </body>
+    </html>
+  );
+}

@@ -1,0 +1,64 @@
+/* 情報ページの全体レイアウト */
+.info-container {
+  max-width: 1100px;
+  margin: 50px auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* 情報ボックスのラッパー */
+.info-boxes {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  width: 100%;
+}
+
+/* 情報ボックスのデザイン */
+.info-box {
+  flex: 1;
+  background-color: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  transition: 0.3s ease-in-out;
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+}
+
+.info-box:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+}
+
+/* アイコンのスタイル */
+.info-box i {
+  font-size: 50px;
+  color: #007BFF;
+  margin-bottom: 10px;
+}
+
+/* タイトル */
+.info-box h3 {
+  font-size: 20px;
+  margin-bottom: 5px;
+  color: #2c3e50;
+}
+
+/* 説明テキスト */
+.info-box p {
+  font-size: 14px;
+  color: #777;
+}
+
+/* スマホ対応（縦並び） */
+@media (max-width: 768px) {
+  .info-boxes {
+    flex-direction: column;
+    align-items: center;
+  }
+}

@@ -1,0 +1,49 @@
+/* 顧客登録ページのスタイル */
+.container {
+  max-width: 800px;
+  margin: 50px auto;
+  padding: 20px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* カードデザイン */
+.card {
+  padding: 20px;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+}
+
+/* フォームのデザイン */
+.form-group {
+  margin-bottom: 15px;
+}
+
+label {
+  display: block;
+  font-weight: bold;
+}
+
+input, select, textarea {
+  width: 100%;
+  padding: 8px;
+  margin-top: 5px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+/* ボタンデザイン */
+.btn {
+  background-color: #1abc9c;
+  color: white;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.btn:hover {
+  background-color: #16a085;
+}
