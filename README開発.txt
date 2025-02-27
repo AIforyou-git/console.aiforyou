@@ -6,7 +6,7 @@ npm run build (ビルド)
 npm start
 
 
-cd "C:\Users\nogaw\Desktop\console.aiforyou"
+cd "C:\Users\nogaw\Desktop\dev_all\vercel\console.aiforyou"
 
 dev環境　
 npm run dev
@@ -46,3 +46,12 @@ rmdir /s /q .next
 
 Next.js を再起動
 npm run dev
+
+テストログイン
+info@aiforyou.jp
+ai5963
+
+
+
+※注
+ログアウトの記録を残せないので一旦保留して次へ進みます。
