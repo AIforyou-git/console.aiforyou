@@ -1,0 +1,91 @@
+.dashboard-container {
+  max-width: 1200px;
+  margin: 20px auto;
+  padding: 20px;
+  position: relative;
+}
+
+/* 🔹 クライアント情報を極小サイズに */
+.client-info {
+  background: #f5f5f5;
+  padding: 5px;
+  border-radius: 5px;
+  font-size: 12px;
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  gap: 5px;
+}
+
+/* 🔥 「あなたの新着情報」を目立たせる */
+.dashboard-title {
+  text-align: center;
+  font-size: 22px;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+/* 🔥 新着情報リスト */
+.news-list {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 10px;
+  background: white;
+}
+
+.news-item {
+  padding: 15px;
+  border-bottom: 1px solid #ddd;
+}
+
+.news-item:last-child {
+  border-bottom: none;
+}
+
+.news-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.news-buttons button {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.news-buttons button:hover {
+  background: #0056b3;
+}
+
+/* 🔥 画面下部の固定メニュー */
+.fixed-bottom-menu {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: #ffffff;
+  display: flex;
+  justify-content: space-around;
+  padding: 10px 0;
+  border-top: 2px solid #ddd;
+}
+
+.menu-btn {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.menu-btn:hover {
+  background: #218838;
+}

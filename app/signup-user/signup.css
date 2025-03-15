@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* サインアップページ用のスタイル */
+.signup-container {
+  @apply flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-200 to-purple-400;
+}
+
+.signup-box {
+  @apply bg-white p-8 rounded-lg shadow-lg w-full max-w-md text-center;
+}
+
+.signup-title {
+  @apply text-3xl font-bold text-gray-800;
+}
+
+.signup-text {
+  @apply text-gray-600 mb-4;
+}
+
+.signup-input {
+  @apply w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500;
+}
+
+.signup-button {
+  @apply w-full bg-blue-500 text-white py-2 mt-4 rounded-lg hover:bg-blue-600 transition;
+}
+
+.signup-message {
+  @apply text-sm text-gray-600 mt-2;
+}

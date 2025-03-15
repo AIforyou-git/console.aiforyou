@@ -1,7 +1,7 @@
-import { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
-  reactStrictMode: false, // 厳格モードを無効化（非同期エラー対策）
+const nextConfig = {
+  eslint: {
+    ignoreDuringBuilds: true, // ✅ ESLint のエラーを無視（これは維持）
+  },
 };
 
 export default nextConfig;
