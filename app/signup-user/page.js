@@ -73,10 +73,10 @@ export default function SignupUser() {
   return (
     <div className="signup-container">
       <div className="signup-box">
-        <h1 className="signup-title">ユーザー登録</h1>
+        <h1 className="signup-title">AIforyouへようこそ！</h1>
         <p className="signup-text">クライアント登録を完了してください</p>
         <p className="text-xs text-gray-400 absolute top-2 right-2">signup-user</p>
-        <p className="signup-referral">ユーザー登録紹介コード: {referralCode}</p>
+        <p className="signup-referral hidden">ユーザー登録紹介コード: {referralCode}</p>
         <input
           type="email"
           className="signup-input"

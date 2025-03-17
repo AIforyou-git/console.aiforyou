@@ -70,6 +70,10 @@ costman2024
 nogawamasaru@gmail.com
 costman2024
 
+＞＞クライアント　
+waka@aiforyou.jp
+ai5963
+
 
 rnMg2Yt2PkgFeCl10ufnuWhHc4s2
 
@@ -78,6 +82,8 @@ rnMg2Yt2PkgFeCl10ufnuWhHc4s2
 https://console.aiforyou.jp/signup?ref=HQ-AGENCY  ※本番URL
 https://console.aiforyou.jp/signup?ref=HQ-USER  ※本番URL
 https://console.aiforyou.jp/signup?ref=HQ-CLIENT  ※本番URL
+
+http://console.aiforyou.jp/signup-user?ref=HQ-USER-l3Ii5mXaqrZoBVf25MU93eXUhXd2　 ※本番URL
 
 
 ローカル
@@ -117,12 +123,14 @@ tsd.nogawa+user13@gmail.com
 tsd.nogawa+user5@gmail.com
 nX2lKE^9WbB2
 
+
+
 tsd.nogawa+user3@gmail.com
 tsd.nogawa+user4@gmail.com
 tsd.nogawa+user5@gmail.com
 tsd.nogawa+user6@gmail.com
 tsd.nogawa+user7@gmail.com
-tsd.nogawa+user8@gmail.com
+
 tsd.nogawa+user9@gmail.com
 tsd.nogawa+user10@gmail.com
 tsd.nogawa+user11@gmail.com

@@ -27,7 +27,21 @@ export async function GET(req) {
     }
 
     return new Response(JSON.stringify({ role, referrerId }), { status: 200 });
-  } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), { status: 400 });
+  
+  }
+  catch (error) {
+    console.error("❌ [REFERRAL] 紹介コード解析エラー:", error.message);
+  
+    await fetch("/api/logs", {
+      method: "POST",
+      body: JSON.stringify({
+        level: "error",
+        message: `[REFERRAL] ${error.message}`,
+        environment: process.env.NODE_ENV || "development",
+      }),
+      headers: { "Content-Type": "application/json" },
+    });
+  
+    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
   }
 }

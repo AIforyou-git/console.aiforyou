@@ -9,8 +9,7 @@ export async function POST(req) {
 
     const loginUrl = "https://console.aiforyou.jp/login";
 
-    /* 参考用URL: http://localhost:3000/login */
-console.log("🔍 参考用URL: http://localhost:3000/login");
+    
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: parseInt(process.env.SMTP_PORT, 10),
@@ -27,6 +26,7 @@ console.log("🔍 参考用URL: http://localhost:3000/login");
       Aiforyou へのご登録ありがとうございます。
 
       以下の情報でログインし、アカウントの設定を行ってください。
+      参考用URL: http://localhost:3000/login
 
       -------------------------------------
       メールアドレス: ${email}
@@ -39,7 +39,6 @@ console.log("🔍 参考用URL: http://localhost:3000/login");
       今後とも Aiforyou をよろしくお願いいたします。
 
       Aiforyou サポートチーム
-      開発用：http://localhost:3000/
     `;
 
     const info = await transporter.sendMail({

@@ -1,17 +1,25 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import "@/app/signup/signup.css";
 
 export default function SignupPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SignupContent />
+    </Suspense>
+  );
+}
+
+function SignupContent() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
-  const [referralCode, setReferralCode] = useState("HQ-ADMIN"); // 初期値を "HQ-ADMIN" に
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [referralCode, setReferralCode] = useState("HQ-ADMIN"); // 初期値をセット
 
-  // ✅ `useEffect` で `ref` を確実にセット
+  // ✅ `useEffect` で `referralCode` を取得
   useEffect(() => {
     const ref = searchParams.get("ref") || "HQ-ADMIN";
     setReferralCode(ref);

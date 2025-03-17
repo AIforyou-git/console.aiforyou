@@ -23,29 +23,39 @@ function SignupContent() {
   useEffect(() => {
     const ref = searchParams.get("ref") || "HQ-ADMIN";
     setReferralCode(ref);
-    console.log("Referral Code Updated:", ref); // デバッグ用
+    console.log("🔍 Referral Code Updated:", ref); // デバッグ用
   }, [searchParams]);
 
   const handleSignup = async () => {
     setMessage("処理中...");
+    console.log("🚀 Signup process started with email:", email);
+    console.log("📌 Referral Code:", referralCode);
+    
     try {
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, referredBy: referralCode }),
       });
-
+      
+      console.log("📨 API Request Sent: /api/auth/register", { email, referredBy: referralCode });
+      
       const data = await response.json();
+      console.log("🔍 API Response Received:", data);
+      
       if (response.ok) {
-        setMessage(`✅ 登録完了！ 仮パスワードが送信されました`);
+        setMessage("✅ 登録完了！ 仮パスワードが送信されました");
+        console.log("✅ Signup Successful! Redirecting to login...");
         setTimeout(() => {
           router.push("/login");
         }, 2000);
       } else {
         setMessage(`❌ 登録失敗: ${data.error}`);
+        console.error("❌ Signup Failed:", data.error);
       }
     } catch (error) {
       setMessage(`❌ エラー: ${error.message}`);
+      console.error("❌ API Request Error:", error);
     }
   };
 

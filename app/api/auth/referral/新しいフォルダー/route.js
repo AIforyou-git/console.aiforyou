@@ -1,6 +1,5 @@
-import { getFirestore, doc, getDoc } from "firebase/firestore";
-
-const db = getFirestore();
+import { db } from "@/lib/firebase"; // ✅ Firebase の初期化済みインスタンスをインポート
+import { doc, getDoc } from "firebase/firestore";
 
 export async function GET(req) {
   try {
