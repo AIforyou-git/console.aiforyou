@@ -12,31 +12,26 @@ export async function POST(req) {
       return new Response(JSON.stringify({ error: "必要な情報がありません" }), { status: 400 });
     }
 
-    console.log("📡 SMTP 環境変数:");
-    console.log("  - SMTP_HOST:", process.env.SMTP_HOST || "❌ 未設定");
-    console.log("  - SMTP_PORT:", process.env.SMTP_PORT || "❌ 未設定");
-    console.log("  - SMTP_USER:", process.env.SMTP_USER || "❌ 未設定");
-    console.log("  - SMTP_PASS:", process.env.SMTP_PASS ? "✅ 設定済み" : "❌ 未設定");
+    console.log("📡 SMTP 設定:", {
+      host: process.env.SMTP_HOST,
+      port: process.env.SMTP_PORT,
+      user: process.env.SMTP_USER,
+    });
 
-    const smtpPort = parseInt(process.env.SMTP_PORT, 10);
-    const secureMode = smtpPort === 465; // 465ならSSL、587ならSTARTTLS
-
-    console.log("🔧 SMTP 設定:", { secureMode, smtpPort });
+    console.log("📨 メール送信開始:", email);
 
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
-      port: smtpPort,
-      secure: secureMode,
+      port: parseInt(process.env.SMTP_PORT, 10),
+      secure: process.env.SMTP_PORT == "465", // 465ならsecure、それ以外はfalse
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
-      tls: {
-        rejectUnauthorized: false, // 証明書のエラー回避（必要なら）
-      },
     });
 
     const loginUrl = "https://console.aiforyou.jp/";
+
     const mailContent = `
       ${email} 様
 
@@ -69,6 +64,7 @@ export async function POST(req) {
 
     console.log(`✅ メール送信成功: メールID ${info.messageId} / 宛先: ${email}`);
     return new Response(JSON.stringify({ success: true }), { status: 200 });
+
   } catch (error) {
     console.error("❌ メール送信エラー:", error.message);
     return new Response(JSON.stringify({ error: error.message }), { status: 500 });
