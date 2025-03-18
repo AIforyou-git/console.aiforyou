@@ -78,12 +78,13 @@ export async function POST(req) {
 
     if (!emailResponse.ok) {
       console.error("❌ メール送信失敗:", emailData.error);
-      throw new Error(emailData.error); // 🔥 ここでエラーを投げる
+      throw new Error(emailData.error);
     }
 
     console.log("✅ メール送信成功:", email);
 
-    return new Response(JSON.stringify({ success: true }), { status: 200 });
+    // ✅ **仮パスワードを含めてレスポンスを返す**
+    return new Response(JSON.stringify({ success: true, tempPassword }), { status: 200 });
 
   } catch (error) {
     console.error("❌ [REGISTER-USER] エラー発生:", error.message);
