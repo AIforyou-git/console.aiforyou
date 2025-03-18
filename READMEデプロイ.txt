@@ -2,8 +2,10 @@
 
 git add .
 git commit -m "ローカル環境を最新の基準として更新"
-git push --force origin main  # 必要なら `main` を適切なブランチ名に変更
+git push --force origin main  
 vercel --prod
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
 👤 1人開発でも本番を安全に運用するために、環境変数の管理とデプロイ時のチェックをしっかりやる！
