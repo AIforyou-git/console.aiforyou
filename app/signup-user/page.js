@@ -18,7 +18,7 @@ export default function SignupUser() {
     const ref = urlParams.get("ref") || "HQ-USER";
 
     if (!ref) {
-      router.replace("/error?msg=invalid_ref");
+      router.replace("/error-page?msg=invalid_ref");
       return;
     }
 
@@ -35,14 +35,14 @@ export default function SignupUser() {
 
         if (!response.ok || !data.valid) {
           console.error("❌ 無効な紹介コード:", ref);
-          router.replace("/error?msg=invalid_ref"); // 🔥 存在しなければエラーページへ
+          router.replace("/error-page?msg=invalid_ref"); // 🔥 存在しなければエラーページへ
         } else {
           console.log("✅ 紹介コード有効:", ref);
           setLoading(false); // ✅ 認証成功ならページ表示
         }
       } catch (error) {
         console.error("❌ 紹介コード API エラー:", error);
-        router.replace("/error?msg=server_error");
+        router.replace("/error-page?msg=server_error");
       }
     };
 

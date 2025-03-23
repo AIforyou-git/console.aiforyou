@@ -44,6 +44,8 @@ export default function UserDashboard() {
     return () => unsubscribe();
   }, [router]);
 
+  
+
   return (
     <div className="container">
       <h1>ユーザーダッシュボード</h1>
@@ -52,6 +54,13 @@ export default function UserDashboard() {
         <>
           <p>ログイン中: {user.email}</p>
           <p>アカウント状態: {status}</p>
+
+          {/* ✅ 登録一覧へのリンクボタン */}
+    <div style={{ marginBottom: "1rem" }}>
+      <Link href="/user-dashboard/clients">
+        <button>📋 登録一覧</button>
+      </Link>
+    </div>
 
           {/* 最新の配信 */}
           <div className="card">

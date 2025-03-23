@@ -13,6 +13,11 @@ export async function GET(req) {
   try {
     console.log(`🔍 Checking referral code: ${ref}`);
 
+    // ✅ HQ-ADMIN は特例として許可（Firestore を検索せずにOKにする）
+    if (ref === "HQ-ADMIN") {
+      return NextResponse.json({ valid: true, referrerId: "admin" }, { status: 200 });
+    }
+
     // Firestore の referral コレクションを検索
     const referralRef = collection(db, "referral");
     const q = query(referralRef, where("referralCode", "==", ref));
@@ -23,13 +28,19 @@ export async function GET(req) {
     }
 
     const referralData = referralSnapshot.docs[0].data();
-    
+
     // 紹介者の状態を `referral.referrerStatus` でチェック
     if (referralData.referrerStatus !== "active") {
       return NextResponse.json({ valid: false, error: "Referrer is not active" }, { status: 400 });
     }
 
-    return NextResponse.json({ valid: true, referrerId: referralData.referrerId }, { status: 200 });
+    return NextResponse.json(
+      {
+        valid: true,
+        referrerId: referralData.referrerId, // Firestore のデータを使用
+      },
+      { status: 200 }
+    );
 
   } catch (error) {
     console.error("🔥 Firestore error:", error);

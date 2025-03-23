@@ -36,7 +36,7 @@ export default function HeaderClient() {
           </li>
           {/* 🔥 未実装ページは準備中ページへ誘導 */}
           <li data-tooltip="プロフィール">
-            <Link href="/preparing">
+            <Link href="/client-dashboard/create">
               <FontAwesomeIcon icon={faUser} />
             </Link>
           </li>

@@ -1,15 +1,20 @@
 "use client";
 
-import { doc, getDoc, collection, query, orderBy, limit, getDocs, updateDoc } from "firebase/firestore";
-
+import { doc, getDoc, collection, query, orderBy, limit, getDocs, updateDoc, setDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { firebaseAuth, db } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import Link from "next/link";
 import "./client-dashboard.css"; // ✅ スタイル適用
+import ClientInfoForm from "./ClientInfoForm";
+
 
 export default function ClientDashboard() {
+  const [userData, setUserData] = useState(null);
+const [showInfoModal, setShowInfoModal] = useState(false); // モーダル表示制御用
+
+
   const [user, setUser] = useState(null);
   const [status, setStatus] = useState("");
   const [news, setNews] = useState([]);
@@ -23,6 +28,30 @@ export default function ClientDashboard() {
       }
 
       setUser(currentUser);
+
+      // 🔽 clients コレクションの存在確認＋作成処理
+const clientRef = doc(db, "clients", currentUser.uid);
+const clientSnap = await getDoc(clientRef);
+
+let clientData = null;
+
+if (!clientSnap.exists()) {
+  await setDoc(clientRef, {
+    uid: currentUser.uid,
+    email: currentUser.email,
+    profileCompleted: false,
+    createdAt: new Date(),
+  });
+  clientData = { profileCompleted: false };
+  console.log("✅ clients に初期プロフィール作成");
+} else {
+  clientData = clientSnap.data();
+}
+
+// ✅ モーダル制御（profileCompleted を見る）
+if (!clientData?.profileCompleted) {
+  setShowInfoModal(true);
+}
 
       const userDocRef = doc(db, "users", currentUser.uid);
       const userDoc = await getDoc(userDocRef);
@@ -38,6 +67,9 @@ export default function ClientDashboard() {
           await updateDoc(userDocRef, { lastLogin: new Date().toISOString() });
         }
       }
+      setUserData(userData);
+
+
     });
 
     return () => unsubscribe();
@@ -115,10 +147,22 @@ export default function ClientDashboard() {
     <button className="menu-btn">🤖 AI相談</button>
   </a>
 
-  <Link href="/preparing">
+  <Link href="/client-dashboard/invite">
     <button className="menu-btn">📨 友達に紹介</button>
   </Link>
 </div>
+
+{/* ✅ プロフィール未登録者向けモーダル表示 */}
+{showInfoModal && (
+  <div className="modal-overlay">
+    <div className="modal-content">
+      <ClientInfoForm uid={user?.uid} onClose={() => setShowInfoModal(false)} />
+    </div>
+  </div>
+)}
+
+
+
     </div>
   );
 }

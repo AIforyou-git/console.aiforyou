@@ -55,6 +55,7 @@ export async function POST(req) {
     // 🔥 Firestore にユーザー情報を保存
     console.log("📝 Firestore へのユーザー情報保存開始");
     await setDoc(doc(db, "users", user.uid), {
+      uid: user.uid,
       email: email,
       role: role,
       referredBy: referrerId,

@@ -19,9 +19,18 @@ function SignupContent() {
   const searchParams = useSearchParams();
   const [referralCode, setReferralCode] = useState("HQ-ADMIN"); // 初期値をセット
 
-  // ✅ `useEffect` で `referralCode` を取得
+  // ✅ `useEffect` で `referralCode` を取得 & バリデーション
   useEffect(() => {
     const ref = searchParams.get("ref") || "HQ-ADMIN";
+    const validCodes = ["HQ-AGENCY", "HQ-USER", "HQ-CLIENT", "HQ-ADMIN"];
+
+    // 🔍 バリデーション（固定紹介コードに含まれているか）
+    if (!validCodes.includes(ref)) {
+      console.error("❌ 無効な紹介コード:", ref);
+      router.replace("/error-page?msg=invalid_ref"); // 🚫 無効ならエラーページへ
+      return;
+    }
+
     setReferralCode(ref);
     console.log("🔍 Referral Code Updated:", ref); // デバッグ用
   }, [searchParams]);

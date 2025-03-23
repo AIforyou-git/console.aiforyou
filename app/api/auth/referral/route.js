@@ -4,16 +4,29 @@ import { doc, getDoc } from "firebase/firestore";
 export async function GET(req) {
   try {
     const url = new URL(req.url);
-    const referredBy = url.searchParams.get("ref");
+    let referredBy = url.searchParams.get("ref");
     if (!referredBy) throw new Error("紹介コードが指定されていません");
 
     let role = "client";  // デフォルト
     let referrerId = referredBy || null;
 
-    if (referredBy === "HQ-AGENCY") role = "agency";
+    // ✅ 固定コード対応（HQ-ADMIN 追加済み）
+    if (referredBy === "HQ-ADMIN") role = "admin";
+    else if (referredBy === "HQ-AGENCY") role = "agency";
     else if (referredBy === "HQ-USER") role = "user";
     else if (referredBy === "HQ-CLIENT") role = "client";
-    else {
+    else if (referredBy.startsWith("CQ-CLIENT-")) {
+      // ✅ クライアントの紹介コード対応
+      referredBy = referredBy.replace("CQ-CLIENT-", ""); // UIDを取得
+      const refUser = await getDoc(doc(db, "users", referredBy));
+      if (refUser.exists() && refUser.data().role === "client") {
+        role = "client";
+        referrerId = referredBy;
+      } else {
+        throw new Error("紹介コードが無効です");
+      }
+    } else {
+      // 通常の紹介コード（UIDのまま登録されている場合）
       const refUser = await getDoc(doc(db, "users", referredBy));
       if (refUser.exists()) {
         const refData = refUser.data();
@@ -27,11 +40,10 @@ export async function GET(req) {
     }
 
     return new Response(JSON.stringify({ role, referrerId }), { status: 200 });
-  
-  }
-  catch (error) {
+
+  } catch (error) {
     console.error("❌ [REFERRAL] 紹介コード解析エラー:", error.message);
-  
+
     await fetch("/api/logs", {
       method: "POST",
       body: JSON.stringify({
@@ -41,7 +53,7 @@ export async function GET(req) {
       }),
       headers: { "Content-Type": "application/json" },
     });
-  
+
     return new Response(JSON.stringify({ error: error.message }), { status: 500 });
   }
 }

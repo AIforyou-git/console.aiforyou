@@ -1,3 +1,7 @@
+import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
+import { db } from "@/lib/firebase";
+import { getDoc, doc, updateDoc, setDoc } from "firebase/firestore";
+
 export async function POST(req) {
   try {
     const { email, password } = await req.json();
@@ -24,6 +28,25 @@ export async function POST(req) {
     } else {
       // それ以降のログインでは `lastLogin` のみ更新
       await updateDoc(userRef, { lastLogin: new Date() });
+    }
+
+    // ✅ clients コレクションの存在チェック・なければ初期データ登録（user を汚さない）
+    try {
+      const clientRef = doc(db, "clients", user.uid);
+      const clientSnap = await getDoc(clientRef);
+
+      if (!clientSnap.exists()) {
+        await setDoc(clientRef, {
+          uid: user.uid,
+          email: user.email,
+          profileCompleted: false,
+          createdAt: new Date(),
+        });
+        console.log("✅ clients コレクションに初期プロフィールを作成しました");
+      }
+    } catch (clientError) {
+      console.warn("⚠️ clients 登録中にエラー:", clientError.message);
+      // clients 登録失敗はログイン自体には影響しない
     }
 
     return new Response(JSON.stringify({ success: true, role: userInfo.role }), { status: 200 });

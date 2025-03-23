@@ -38,8 +38,15 @@ export async function POST(req) {
       return new Response(JSON.stringify({ error: "メールアドレスが必要です" }), { status: 400 });
     }
 
-    // ✅ `referredBy` の解析
-    const referrerId = referredBy?.startsWith("HQ-USER-") ? referredBy.split("HQ-USER-")[1] : null;
+    // ✅ referredBy の接頭辞に応じた ID 抽出
+    let referrerId = null;
+    if (referredBy?.startsWith("HQ-USER-")) {
+      referrerId = referredBy.split("HQ-USER-")[1];
+    } else if (referredBy?.startsWith("CQ-CLIENT-")) {
+      referrerId = referredBy.split("CQ-CLIENT-")[1];
+    } else if (referredBy === "HQ-CLIENT") {
+      referrerId = "HQ-CLIENT";
+    }
 
     // 🔥 仮パスワードを生成
     const tempPassword = generateTempPassword(12);
@@ -54,6 +61,7 @@ export async function POST(req) {
     // 🔥 Firestore にユーザー情報を保存
     console.log("📝 Firestore へのユーザー情報保存開始");
     await setDoc(doc(db, "users", user.uid), {
+      uid: user.uid,
       email: email,
       role: "client",
       referredBy: referrerId,
@@ -83,7 +91,7 @@ export async function POST(req) {
 
     console.log("✅ メール送信成功:", email);
 
-    // ✅ **仮パスワードを含めてレスポンスを返す**
+    // ✅ レスポンス
     return new Response(JSON.stringify({ success: true, tempPassword }), { status: 200 });
 
   } catch (error) {

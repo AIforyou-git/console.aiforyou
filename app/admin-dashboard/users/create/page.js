@@ -60,7 +60,7 @@ export default function CreateUser() {
         <label>パスワード:</label>
         <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
 
-        <label>権限 (Role):</label>
+        <label>権限 ※adminにstatusが無い(Role):</label>
         <select value={role} onChange={(e) => setRole(e.target.value)}>
           <option value="admin">Admin</option>
           <option value="agency">代理店</option>
