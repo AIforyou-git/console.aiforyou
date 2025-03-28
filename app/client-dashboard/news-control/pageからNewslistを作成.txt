@@ -1,0 +1,8 @@
+
+
+app/
+└── client-dashboard/
+    ├── page.js                ← メインのダッシュボード
+    ├── news-control/
+    │   ├── NewsList.js       ← 再利用用の表示パーツ（一覧だけ）
+    │   └── page.js           ← 単体表示・詳細用など

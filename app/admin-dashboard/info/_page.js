@@ -10,7 +10,7 @@ export default function Info() {
 
       <div className="info-boxes">
         {/* 補助金情報（未実装のため準備中へ） */}
-        <Link href="/admin-dashboard/news-control" className="info-box">
+        <Link href="/preparing" className="info-box">
           <i className="fas fa-file-invoice-dollar"></i>
           <h3>補助金情報</h3>
           <p>管理クライアントに該当する補助金一覧をまとめて確認</p>

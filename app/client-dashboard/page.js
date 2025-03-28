@@ -1,23 +1,21 @@
 "use client";
 
-import { doc, getDoc, collection, query, orderBy, limit, getDocs, updateDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, setDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { firebaseAuth, db } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import Link from "next/link";
-import "./client-dashboard.css"; // ✅ スタイル適用
+import "./client-dashboard.css";
 import ClientInfoForm from "./ClientInfoForm";
-
+import NewsList from "./news-control/NewsList";
 
 export default function ClientDashboard() {
   const [userData, setUserData] = useState(null);
-const [showInfoModal, setShowInfoModal] = useState(false); // モーダル表示制御用
-
-
+  const [showInfoModal, setShowInfoModal] = useState(false);
   const [user, setUser] = useState(null);
   const [status, setStatus] = useState("");
-  const [news, setNews] = useState([]);
+  const [isSyncing, setIsSyncing] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -29,29 +27,27 @@ const [showInfoModal, setShowInfoModal] = useState(false); // モーダル表示
 
       setUser(currentUser);
 
-      // 🔽 clients コレクションの存在確認＋作成処理
-const clientRef = doc(db, "clients", currentUser.uid);
-const clientSnap = await getDoc(clientRef);
+      const clientRef = doc(db, "clients", currentUser.uid);
+      const clientSnap = await getDoc(clientRef);
 
-let clientData = null;
+      let clientData = null;
 
-if (!clientSnap.exists()) {
-  await setDoc(clientRef, {
-    uid: currentUser.uid,
-    email: currentUser.email,
-    profileCompleted: false,
-    createdAt: new Date(),
-  });
-  clientData = { profileCompleted: false };
-  console.log("✅ clients に初期プロフィール作成");
-} else {
-  clientData = clientSnap.data();
-}
+      if (!clientSnap.exists()) {
+        await setDoc(clientRef, {
+          uid: currentUser.uid,
+          email: currentUser.email,
+          profileCompleted: false,
+          createdAt: new Date(),
+        });
+        clientData = { profileCompleted: false };
+        console.log("✅ clients に初期プロフィール作成");
+      } else {
+        clientData = clientSnap.data();
+      }
 
-// ✅ モーダル制御（profileCompleted を見る）
-if (!clientData?.profileCompleted) {
-  setShowInfoModal(true);
-}
+      if (!clientData?.profileCompleted) {
+        setShowInfoModal(true);
+      }
 
       const userDocRef = doc(db, "users", currentUser.uid);
       const userDoc = await getDoc(userDocRef);
@@ -61,54 +57,48 @@ if (!clientData?.profileCompleted) {
         setStatus(userData.status);
 
         if (userData.status === "pending") {
-          await updateDoc(userDocRef, { status: "active", lastLogin: new Date().toISOString() });
+          await updateDoc(userDocRef, {
+            status: "active",
+            lastLogin: new Date().toISOString(),
+          });
           setStatus("active");
         } else {
-          await updateDoc(userDocRef, { lastLogin: new Date().toISOString() });
+          await updateDoc(userDocRef, {
+            lastLogin: new Date().toISOString(),
+          });
         }
       }
+
       setUserData(userData);
-
-
     });
 
     return () => unsubscribe();
   }, [router]);
 
-  useEffect(() => {
-    const fetchNews = async () => {
-      const dummyNews = [
-        {
-          id: "1",
-          title: "中小企業向けIT導入補助金",
-          summary: "中小企業がITツールを導入する際に利用できる補助金。最大200万円まで補助される制度であり...",
-        },
-        {
-          id: "2",
-          title: "新規事業開拓支援補助金",
-          summary: "新規事業の立ち上げを支援する補助金。対象はスタートアップ企業や中小企業で、事業計画の提出が必要...",
-        },
-        {
-          id: "3",
-          title: "環境対策補助金",
-          summary: "CO2削減に貢献する設備投資を行う企業向けの補助金。最大500万円まで補助され、エコ製品の導入に...",
-        },
-        {
-          id: "4",
-          title: "DX推進補助金",
-          summary: "企業のデジタル化を支援する補助金。ERP、CRMなどの導入費用の一部を補助し、競争力向上を目指す...",
-        },
-        {
-          id: "5",
-          title: "雇用促進助成金",
-          summary: "雇用促進を目的とした助成金制度。正社員登用を行う企業に対し、一人当たり最大50万円の助成金が支給...",
-        },
-      ];
-      setNews(dummyNews);
-    };
+  // ✅ モーダル完了後の Supabase 統合同期処理（st1 + st2）
+  const handleModalClose = async () => {
+    setShowInfoModal(false);
+    setIsSyncing(true);
 
-    fetchNews();
-  }, []);
+    try {
+      const res = await fetch("/api/sync-client-to-supabase", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uid: user?.uid }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        console.error("❌ Supabase 同期エラー:", data.error);
+      } else {
+        console.log("✅ Supabase にクライアント＆アカウント情報を同期しました");
+      }
+    } catch (err) {
+      console.error("❌ Supabase 同期通信失敗:", err.message);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   return (
     <div className="dashboard-container">
@@ -119,50 +109,44 @@ if (!clientData?.profileCompleted) {
 
       <h1 className="dashboard-title">あなたの新着情報</h1>
 
-      {/* 🔥 新着情報リスト */}
+      {/* 🔥 Supabase 記事リスト */}
       <div className="news-list">
-        {news.map((item) => (
-          <div key={item.id} className="news-item">
-            <h3>{item.title}</h3>
-            <p>{item.summary}</p>
-            <div className="news-buttons">
-            <Link href="/preparing">
-  <button>詳細確認</button>
-</Link>
-<Link href="/preparing">
-  <button>申請サポート</button>
-</Link>
-            </div>
-          </div>
-        ))}
+        <NewsList />
       </div>
 
       {/* 🔥 画面下部の固定メニュー */}
-<div className="fixed-bottom-menu">
-  <a 
-    href="https://script.google.com/macros/s/AKfycbyAb-HRdZ8YdluDDWBqZ_pBelhlqSTXENOlFMFINIsR2T9sbnx45CVsTTP-4S1p634/exec"
-    target="_blank"
-    rel="noopener noreferrer"
-  >
-    <button className="menu-btn">🤖 AI相談</button>
-  </a>
+      <div className="fixed-bottom-menu">
+        <a
+          href="https://chat.guaido.ai/room/yy3OIWXmJPw4u2RrpxzRwg"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <button className="menu-btn">🤖 AI相談</button>
+        </a>
 
-  <Link href="/client-dashboard/invite">
-    <button className="menu-btn">📨 友達に紹介</button>
-  </Link>
-</div>
+        <Link href="/client-dashboard/invite">
+          <button className="menu-btn">📨 友達に紹介</button>
+        </Link>
+      </div>
 
-{/* ✅ プロフィール未登録者向けモーダル表示 */}
-{showInfoModal && (
-  <div className="modal-overlay">
-    <div className="modal-content">
-      <ClientInfoForm uid={user?.uid} onClose={() => setShowInfoModal(false)} />
-    </div>
-  </div>
-)}
+      {/* ✅ プロフィールモーダル */}
+      {showInfoModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <ClientInfoForm uid={user?.uid} onClose={handleModalClose} />
+          </div>
+        </div>
+      )}
 
-
-
+      {/* 🔄 Supabase 同期中メッセージ */}
+      {isSyncing && (
+        <div className="modal-overlay">
+          <div className="modal-content text-center">
+            <p className="text-xl font-bold">🔄 クライアント情報を保存中です...</p>
+            <p className="text-sm mt-2 text-gray-600">少々お待ちください。</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
