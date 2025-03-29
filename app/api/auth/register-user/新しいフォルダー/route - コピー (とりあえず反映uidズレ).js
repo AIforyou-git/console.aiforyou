@@ -71,10 +71,10 @@ export async function POST(req) {
     });
     console.log("✅ Firestore 保存完了:", user.uid);
 
-    const baseUrl = process.env.API_BASE_URL || "http://localhost:3000";
-
     // 🔥 メール送信 API を呼び出す
+    const baseUrl = process.env.API_BASE_URL || "http://localhost:3000";
     console.log("📨 メール送信 API 呼び出し開始:", `${baseUrl}/api/auth/send-email`);
+
     const emailResponse = await fetch(`${baseUrl}/api/auth/send-email`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -90,20 +90,6 @@ export async function POST(req) {
     }
 
     console.log("✅ メール送信成功:", email);
-
-    // ✅ Supabase 同期 API を非同期で呼び出す（失敗してもメール処理には影響なし）
-    console.log("🔁 Supabase 同期 API 呼び出し開始");
-    fetch(`${baseUrl}/api/auth/sync-to-supabase`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ uid: user.uid }),
-    }).then(res => res.json())
-      .then(data => {
-        console.log("✅ Supabase 同期完了:", data);
-      })
-      .catch(err => {
-        console.error("❌ Supabase 同期エラー:", err.message);
-      });
 
     // ✅ レスポンス
     return new Response(JSON.stringify({ success: true, tempPassword }), { status: 200 });
