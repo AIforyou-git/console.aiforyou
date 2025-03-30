@@ -1,7 +1,6 @@
-// app/api/auth/sync-client-to-supabase/route.js
-
 import { getFirestore, doc, getDoc } from "firebase/firestore";
 import { initializeApp, getApps } from "firebase/app";
+import { createClient } from "@supabase/supabase-js";
 
 // Firebase 初期化
 const firebaseConfig = {
@@ -18,9 +17,15 @@ if (getApps().length === 0) {
 }
 const db = getFirestore();
 
+// Supabase 初期化
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
 export async function POST(req) {
   try {
-    console.log("🚀 [SYNC-CLIENT] Supabase Edge Function 経由 同期処理開始");
+    console.log("🚀 [SYNC-CLIENT] Supabase 同期処理開始");
 
     const { uid } = await req.json();
     if (!uid) {
@@ -40,14 +45,14 @@ export async function POST(req) {
     const clientData = clientSnap.data();
     console.log("📦 Firestore データ:", clientData);
 
-    // Edge Function に送るデータを構築
-    const supabasePayload = {
-      uid,
+    // Supabase に送信するデータ構築
+    const supabaseData = {
+      uid: uid,
       email: clientData.email ?? null,
       name: clientData.name ?? null,
       company: clientData.company ?? null,
       position: clientData.position ?? null,
-      region_prefec: clientData.regionPrefecture ?? null, // ✅ Supabase 側の列名に合わせる
+      region_prefec: clientData.regionPrefecture ?? null,
       region_city: clientData.regionCity ?? null,
       industry: clientData.industry ?? null,
       memo: clientData.memo ?? null,
@@ -56,28 +61,18 @@ export async function POST(req) {
       updated_at: new Date().toISOString(),
     };
 
-    console.log("📨 Supabase Edge Function に送信:", supabasePayload);
+    console.log("📤 Supabase に upsert:", supabaseData);
 
-    // Edge Function 呼び出しURLを環境変数から読み込む
-    const functionUrl = `${process.env.SUPABASE_FUNCTION_URL}/syncClient`;
+    const { error } = await supabase
+      .from("clients")
+      .upsert(supabaseData, { onConflict: ["uid"] });
 
-    const response = await fetch(functionUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
-      },
-      body: JSON.stringify(supabasePayload),
-    });
-
-    const result = await response.json();
-
-    if (!response.ok) {
-      console.error("❌ Edge Function エラー:", result.error || result);
-      return new Response(JSON.stringify({ error: result.error || result }), { status: 500 });
+    if (error) {
+      console.error("❌ Supabase 同期エラー:", error.message);
+      return new Response(JSON.stringify({ error: error.message }), { status: 500 });
     }
 
-    console.log("✅ Supabase Edge Function 経由 同期成功:", uid);
+    console.log("✅ Supabase 同期成功:", uid);
     return new Response(JSON.stringify({ success: true }), { status: 200 });
 
   } catch (err) {

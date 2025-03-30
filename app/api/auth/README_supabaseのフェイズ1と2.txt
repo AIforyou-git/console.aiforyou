@@ -1,67 +1,66 @@
-✅ 第1フェーズから学ぶ設計パターンのポイント
+
+✅ フェーズ1 vs フェーズ2：Supabase 同期構成の進化
+🔹 フェーズ1：サーバー側同期（登録時に即同期）
 Firestore → Supabase 同期の流れが確立済み
 
-UIDをベースにFirestoreからデータ取得（getDoc(doc(...))）
+UID をベースに Firestore からデータ取得（getDoc(doc(...))）
 
 取得データを supabase.from("client_accounts").upsert() で登録・更新
 
-必須型整合：toDate().toISOString() にて timestamptz 対応
+Firestore Timestamp → Supabase timestamptz への変換：.toDate().toISOString()
 
-APIレスポンス設計が明瞭
+API レスポンス形式：
 
-成功時 { success: true }
+成功時：{ success: true }
 
-エラー時 { error: "メッセージ" }
+失敗時：{ error: "メッセージ" }
 
-APIトリガーは非同期発火もOK
+登録時の同期は /api/auth/register-user の最後にトリガーされる
 
-fetch("/api/xxx", { method: "POST", body }) にて後続処理可能
+🔹 フェーズ2：クライアント側同期（初回ログイン時に同期）
+クライアントログイン後、/client-dashboard/page.js にて以下の処理を実行：
 
-
->>>>>
-
-構成解析まとめ：フェーズ2（モーダル→Firestore→Supabase同期）
-① /client-dashboard/page.js の構成と動作
-🔹 ログイン後の流れ：
 処理	説明
-Firebase Auth の状態監視	onAuthStateChanged にてログイン判定と uid 取得
-clients/{uid} を確認	無ければ初期ドキュメント作成（profileCompleted: false）
-profileCompleted が false ならモーダル表示	✅ クライアント初回起動時の導線が確保されている
-users/{uid} のステータス更新	pending → active に変更し、lastLogin 更新
-モーダル終了後 → API /api/sync-client-to-supabase 呼び出し	Supabase との同期トリガー。状態管理も OK
-
-
-② ClientInfoForm.js の構成と動作
-🔹 入力項目と保存先
-フィールド名（フォーム）	Firestore 保存先
-name	clients/{uid} の name
-regionPrefecture	同上
-industry	同上
-その他	profileCompleted: true を updateDoc で更新
-🔹 実装ポイント
-ユーザーの uid は getAuth().currentUser.uid で取得
-
-フォームバリデーション (isFormValid)
-
-保存後 onClose() をコール → page.js 側で handleModalClose() が呼ばれ、同期へ進行
-
-\\\\
-全体フローのつながり（1〜2フェーズ連動）
-pgsql
+Firebase Auth 監視	onAuthStateChanged にてログイン状態と UID を検知
+clients/{uid} 存在確認	無ければ profileCompleted: false で初期ドキュメント作成
+profileCompleted が false の場合	モーダル（ClientInfoForm.js）を表示
+モーダル入力完了後	onClose() で /api/auth/sync-client-to-supabase を呼び出し
+Supabase 同期	今回から Supabase Edge Function（syncClient）を経由して書き込み
+🔁 フェーズ1 → フェーズ2 の主な違い
+項目	フェーズ1	フェーズ2
+同期タイミング	登録直後（サーバー）	初回ログイン後（クライアント）
+トリガー	/api/auth/register-user	/client-dashboard & ClientInfoForm.js
+送信方式	Next.js API 経由（Node）	Edge Function 経由（Supabase サーバレス関数）
+JWT 問題	Firebase Admin SDK により安全に認証	Edge Function にて Bearer Token 必須（JWT）
+実行環境	Node.js ベース	Deno（Supabase Edge Runtime）
+使用 SDK	@supabase/supabase-js	同上（ただし Edge 対応）
+📡 最新同期フロー：クライアントから Supabase Edge へ
+bash
 コピーする
 編集する
 ① 登録時
-    register-user → send-email → sync-client-to-supabase/route.js
+    /api/auth/register-user
         ↓
-② クライアント初ログイン
-    client-dashboard.page.js
+    Firestore users コレクション → 保存
         ↓
-③ Firestore clients に初期情報作成
-        ↓
-④ モーダル入力（ClientInfoForm.js）
-        ↓
-⑤ Firestore clients に詳細更新 ＆ profileCompleted = true
-        ↓
-⑥ onClose → /api/sync-client-to-supabase にて Supabase へ client_accounts 同期（第2フェーズ完了）
+    Supabase（client_accounts）へ insert（フェーズ1）
 
+② 初回ログイン
+    /client-dashboard
+        ↓
+    clients/{uid} がなければ作成
+        ↓
+    モーダル（ClientInfoForm）表示
+        ↓
+    profileCompleted: true ＆ 各種項目入力
+        ↓
+    onClose() → /api/auth/sync-client-to-supabase
+        ↓
+    Supabase Edge Function（syncClient）へ POST（フェーズ2）
+✅ ポイント
 
+今後の設計では、Supabase Functions（Edge）を活用した非同期・セキュアな処理分離が標準化されていく見込み。
+
+Firebase 認証情報（JWT）を安全に Edge Function へ渡す運用が今後の鍵となる。
+
+この構成の変化により、セキュリティ・同期制御の明確化、モジュール分離による拡張性向上が実現されました。今後のフェーズ3（例えば「管理画面でのユーザー同期管理」）にも発展しやすい土台が整っています。
