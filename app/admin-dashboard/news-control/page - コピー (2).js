@@ -8,23 +8,11 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-const keywordOptions = ['補助金', '災害', '設備投資', '人材育成']
-const areaOptions = ['全国', '北海道', '東京', '大阪', '福岡']
-const sortOptions = [
-  { label: '構造化日（新しい順）', value: 'structured_at' },
-  { label: 'タイトル（昇順）', value: 'structured_title' },
-]
-
 export default function NewsControlPage() {
   const [articles, setArticles] = useState([])
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(0)
   const perPage = 20
-
-  const [keyword, setKeyword] = useState('')
-  const [area, setArea] = useState('')
-  const [sortBy, setSortBy] = useState('structured_at')
-  const [ascending, setAscending] = useState(false)
 
   useEffect(() => {
     const fetchArticles = async () => {
@@ -32,104 +20,27 @@ export default function NewsControlPage() {
       const from = page * perPage
       const to = from + perPage - 1
 
-      let query = supabase
+      const { data, error } = await supabase
         .from('jnet_articles_public')
         .select('article_id, structured_title, structured_agency, structured_prefecture, structured_application_period, structured_summary_extract, structured_amount_max, detail_url')
-        .eq('structured_success', true)
-
-      // 🔍 キーワード検索
-      if (keyword) {
-        query = query.or(`structured_title.ilike.%${keyword}%,structured_summary_extract.ilike.%${keyword}%`)
-      }
-
-      // 🌐 エリアフィルター（例：東京 → 東京都 or 全国）
-      if (area === '東京') {
-        query = query.in('structured_prefecture', ['東京都', '全国'])
-      } else if (area) {
-        query = query.eq('structured_prefecture', area)
-      }
-
-      // 🔁 並び順
-      query = query.order(sortBy, { ascending })
-
-      const { data, error } = await query.range(from, to)
+        .eq('structured_success', true) // ✅ 構造化済みのみ
+        .order('structured_at', { ascending: false })
+        .range(from, to)
 
       if (error) {
         console.error('記事の取得エラー:', error.message)
       } else {
         setArticles(data)
       }
-
       setLoading(false)
     }
 
     fetchArticles()
-  }, [page, keyword, area, sortBy, ascending])
+  }, [page])
 
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-4">📢 配信候補記事一覧</h1>
-
-      <div className="flex flex-col md:flex-row md:items-center gap-4 mb-4">
-        <input
-          type="text"
-          placeholder="キーワード検索（例：補助金, 雇用）"
-          value={keyword}
-          onChange={(e) => {
-            setPage(0)
-            setKeyword(e.target.value)
-          }}
-          className="border px-3 py-2 rounded w-full md:w-1/3"
-        />
-
-        <select
-          value={area}
-          onChange={(e) => {
-            setPage(0)
-            setArea(e.target.value)
-          }}
-          className="border px-3 py-2 rounded w-full md:w-1/4"
-        >
-          <option value="">エリア選択</option>
-          {areaOptions.map((opt) => (
-            <option key={opt} value={opt}>
-              {opt}
-            </option>
-          ))}
-        </select>
-
-        <select
-          value={sortBy}
-          onChange={(e) => {
-            setPage(0)
-            setSortBy(e.target.value)
-            setAscending(e.target.value !== 'structured_at') // 構造化日は降順、それ以外は昇順
-          }}
-          className="border px-3 py-2 rounded w-full md:w-1/4"
-        >
-          {sortOptions.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="mb-4">
-        <span className="mr-2 font-semibold text-sm">おすすめキーワード:</span>
-        {keywordOptions.map((word) => (
-          <button
-            key={word}
-            className="text-sm bg-blue-100 text-blue-800 px-2 py-1 mr-2 rounded"
-            onClick={() => {
-              setPage(0)
-              setKeyword(word)
-            }}
-          >
-            {word}
-          </button>
-        ))}
-      </div>
 
       {loading ? (
         <p>読み込み中...</p>

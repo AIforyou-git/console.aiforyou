@@ -16,7 +16,6 @@ export default function ClientDashboard() {
   const [user, setUser] = useState(null);
   const [status, setStatus] = useState("");
   const [isSyncing, setIsSyncing] = useState(false);
-  const [clientName, setClientName] = useState("");
   const router = useRouter();
 
   useEffect(() => {
@@ -50,13 +49,6 @@ export default function ClientDashboard() {
         setShowInfoModal(true);
       }
 
-      // 🔹 クライアント名を取得（優先度: name > displayName > email）
-      const nameFromClient = clientData?.name;
-      const displayNameFromAuth = currentUser.displayName;
-      const emailName = currentUser.email?.split("@")[0];
-
-      setClientName(nameFromClient || displayNameFromAuth || emailName);
-
       const userDocRef = doc(db, "users", currentUser.uid);
       const userDoc = await getDoc(userDocRef);
 
@@ -83,6 +75,7 @@ export default function ClientDashboard() {
     return () => unsubscribe();
   }, [router]);
 
+  // ✅ モーダル完了後の Supabase 統合同期処理（st1 + st2）
   const handleModalClose = async () => {
     setShowInfoModal(false);
     setIsSyncing(true);
@@ -109,10 +102,12 @@ export default function ClientDashboard() {
 
   return (
     <div className="dashboard-container">
-      {/* 🧾 クライアント名で挨拶表示 */}
-      <h1 className="dashboard-title text-xl font-bold text-center mb-4">
-        {clientName} 様の最新情報
-      </h1>
+      {/* 🔹 クライアント情報を極小表示 */}
+      <div className="client-info">
+        <span>ログイン中: {user?.email}</span> | <span>アカウント: {status}</span>
+      </div>
+
+      <h1 className="dashboard-title">あなたの新着情報</h1>
 
       {/* 🔥 Supabase 記事リスト */}
       <div className="news-list">

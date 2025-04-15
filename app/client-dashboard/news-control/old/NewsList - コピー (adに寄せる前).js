@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@supabase/supabase-js'
 
+// ✅ 環境変数から Supabase の情報を読み込み
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
@@ -11,7 +12,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey)
 export default function NewsList() {
   const [articles, setArticles] = useState([])
   const [loading, setLoading] = useState(true)
-  const [sortKey, setSortKey] = useState('structured_at')
+  const [sortKey, setSortKey] = useState('timestamp')
   const [isAsc, setIsAsc] = useState(false)
   const [keyword, setKeyword] = useState('')
 
@@ -21,14 +22,14 @@ export default function NewsList() {
 
       try {
         let query = supabase
-          .from('jnet_articles_public')
-          .select('article_id, structured_title, structured_agency, structured_prefecture, structured_application_period, structured_summary_extract, structured_amount_max, detail_url')
-          .eq('structured_success', true)
+          .from('jnet_articles')
+          .select('*')
           .order(sortKey, { ascending: isAsc })
           .limit(50)
 
         if (keyword.trim() !== '') {
-          query = query.or(`structured_title.ilike.%${keyword}%,structured_summary_extract.ilike.%${keyword}%`)
+          // 検索：title または agency に部分一致
+          query = query.ilike('title', `%${keyword}%`)
         }
 
         const { data, error } = await query
@@ -50,13 +51,13 @@ export default function NewsList() {
 
   return (
     <div className="space-y-4">
-      
+      <h2 className="text-xl font-bold mb-2">📰 配信候補記事</h2>
 
       {/* 🔍 検索 & ソート UI */}
       <div className="flex flex-wrap gap-4 items-center mb-4">
         <input
           type="text"
-          placeholder="キーワード検索"
+          placeholder="キーワード検索（タイトル）"
           className="border p-2 rounded"
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
@@ -66,9 +67,9 @@ export default function NewsList() {
           value={sortKey}
           onChange={(e) => setSortKey(e.target.value)}
         >
-          <option value="structured_at">構造化日</option>
-          <option value="structured_title">タイトル</option>
-          <option value="structured_agency">発信元</option>
+          <option value="timestamp">日付順</option>
+          <option value="title">タイトル順</option>
+          <option value="agency">発信元順</option>
         </select>
         <button
           onClick={() => setIsAsc(!isAsc)}
@@ -83,35 +84,34 @@ export default function NewsList() {
       ) : (
         articles.map((article) => (
           <div
-            key={article.article_id}
+            key={article.id}
             className="p-4 border rounded-lg shadow-sm bg-white"
           >
             <div className="flex justify-between items-start">
               <div>
-                <h3 className="text-lg font-semibold">{article.structured_title || '（タイトル未定）'}</h3>
-                <p className="text-sm text-gray-500 mt-1">
-                  🏢 {article.structured_agency || '機関不明'}<br />
-                  📍 {article.structured_prefecture || '地域未定'}<br />
-                  📅 {article.structured_application_period?.start || '未定'}
+                <h3 className="text-lg font-semibold">{article.title}</h3>
+                <p className="text-sm text-gray-500">
+                  {article.agency} / {article.region_large} / {article.start_date}
                 </p>
-                {article.structured_summary_extract && (
-                  <p className="text-sm text-gray-700 mt-2">
-                    💬 {article.structured_summary_extract}
-                  </p>
-                )}
-                {article.structured_amount_max && (
-                  <p className="text-sm text-gray-600 mt-1">
-                    💰 {article.structured_amount_max}
-                  </p>
-                )}
                 <a
-                  href={article.detail_url}
+                  href={article.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-600 underline text-sm mt-2 inline-block"
+                  className="text-blue-600 underline text-sm"
                 >
                   記事を見る
                 </a>
+              </div>
+              <div>
+                <span
+                  className={`px-3 py-1 text-sm rounded ${
+                    article.is_published
+                      ? 'bg-green-500 text-white'
+                      : 'bg-gray-300'
+                  }`}
+                >
+                  {article.is_published ? '配信対象' : '未配信'}
+                </span>
               </div>
             </div>
           </div>
