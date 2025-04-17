@@ -1,9 +1,8 @@
 "use client";
-export const dynamic = "force-dynamic"; // ← この1行を追加するだけ！
+export const dynamic = "force-dynamic";
 
 import { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import "./signup.css";
 
 export default function SignupClientPage() {
   const router = useRouter();
@@ -77,26 +76,35 @@ export default function SignupClientPage() {
   };
 
   if (loading) {
-    return <div className="signup-container">🔄 認証中...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-100 to-blue-300">
+        🔄 認証中...
+      </div>
+    );
   }
 
   return (
-    <div className="signup-container">
-      <div className="signup-box">
-        <h1 className="signup-title">📝 AIforyouへようこそ！！</h1>
-        <p className="signup-text">紹介リンクから登録を完了してください</p>
-        <p className="signup-referral hidden">※こちらは会員様限定のサービスです。{/*紹介コード: {referralCode}*/}</p>
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-100 to-blue-300 px-4">
+      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md text-center space-y-4">
+        <h1 className="text-2xl font-bold text-gray-800">📝 AIforyouへようこそ！！</h1>
+        <p className="text-gray-600 text-sm">紹介リンクから登録を完了してください</p>
+        <p className="text-xs text-gray-400 italic">
+          ※こちらは会員様限定のサービスです
+        </p>
         <input
           type="email"
-          className="signup-input"
           placeholder="メールアドレス"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
-        <button onClick={handleSignup} className="signup-button">
+        <button
+          onClick={handleSignup}
+          className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
+        >
           ✅ 登録する
         </button>
-        <p className="signup-message">{message}</p>
+        <p className="text-sm text-red-500">{message}</p>
       </div>
     </div>
   );

@@ -6,7 +6,6 @@ import { firebaseAuth, db } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import Link from "next/link";
-import "./client-dashboard.css";
 import ClientInfoForm from "./ClientInfoForm";
 import NewsList from "./news-control/NewsList";
 
@@ -50,7 +49,6 @@ export default function ClientDashboard() {
         setShowInfoModal(true);
       }
 
-      // 🔹 クライアント名を取得（優先度: name > displayName > email）
       const nameFromClient = clientData?.name;
       const displayNameFromAuth = currentUser.displayName;
       const emailName = currentUser.email?.split("@")[0];
@@ -108,45 +106,51 @@ export default function ClientDashboard() {
   };
 
   return (
-    <div className="dashboard-container">
-      {/* 🧾 クライアント名で挨拶表示 */}
-      <h1 className="dashboard-title text-xl font-bold text-center mb-4">
+    <div className="max-w-screen-xl mx-auto px-2 pt-20 pb-32 relative bg-gray-50 min-h-screen">
+      {/* 🧾 クライアント名で挨拶（小さく＆コンパクト） */}
+      <h1 className="text-sm text-center text-gray-500 mb-2">
         {clientName} 様の最新情報
       </h1>
 
-      {/* 🔥 Supabase 記事リスト */}
-      <div className="news-list">
+      {/* 🔥 ニュース記事リスト（本文が主役） */}
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
         <NewsList />
       </div>
 
-      {/* 🔥 画面下部の固定メニュー */}
-      <div className="fixed-bottom-menu">
-        <a
-          href="https://chat.guaido.ai/room/yy3OIWXmJPw4u2RrpxzRwg"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <button className="menu-btn">🤖 AI相談</button>
-        </a>
+      {/* 🔽 フッター固定メニュー */}
+      <div className="fixed bottom-0 left-0 w-full bg-white border-t shadow z-40">
+        <div className="max-w-screen-md mx-auto flex justify-around items-center py-3">
+          <a
+            href="https://chat.guaido.ai/room/yy3OIWXmJPw4u2RrpxzRwg"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <button className="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded w-40">
+              🤖 AI相談
+            </button>
+          </a>
 
-        <Link href="/client-dashboard/invite">
-          <button className="menu-btn">📨 友達に紹介</button>
-        </Link>
+          <Link href="/client-dashboard/invite">
+            <button className="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded w-40">
+              📨 友達に紹介
+            </button>
+          </Link>
+        </div>
       </div>
 
-      {/* ✅ プロフィールモーダル */}
+      {/* ✅ モーダル */}
       {showInfoModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
+        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-xl p-6 w-[90%] max-w-xl shadow-lg">
             <ClientInfoForm uid={user?.uid} onClose={handleModalClose} />
           </div>
         </div>
       )}
 
-      {/* 🔄 Supabase 同期中メッセージ */}
+      {/* 🔄 同期中メッセージ */}
       {isSyncing && (
-        <div className="modal-overlay">
-          <div className="modal-content text-center">
+        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-xl p-6 w-[90%] max-w-xl shadow-lg text-center">
             <p className="text-xl font-bold">🔄 クライアント情報を保存中です...</p>
             <p className="text-sm mt-2 text-gray-600">少々お待ちください。</p>
           </div>

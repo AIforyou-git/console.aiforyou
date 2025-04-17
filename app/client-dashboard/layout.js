@@ -1,5 +1,7 @@
 "use client";
 
+import ProtectedLayout from "@/app/protected-layout/layout";
+
 export default function ClientLayout({ children }) {
-  return <>{children}</>;
+  return <ProtectedLayout expectedRole="client">{children}</ProtectedLayout>;
 }

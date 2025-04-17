@@ -1,65 +1,69 @@
 "use client";
 
 import Link from "next/link";
-import "@/styles/pages/settings.css";
 
 export default function Settings() {
+  const items = [
+    {
+      icon: "fas fa-envelope",
+      title: "メール設定",
+      desc: "メールテンプレート編集・自動送信設定",
+    },
+    {
+      icon: "fas fa-credit-card",
+      title: "支払い設定",
+      desc: "プラン変更・支払い履歴",
+    },
+    {
+      icon: "fas fa-database",
+      title: "データ設定",
+      desc: "バックアップ・データエクスポート",
+    },
+    {
+      icon: "fas fa-bell",
+      title: "通知設定",
+      desc: "メール通知・重要なお知らせ",
+    },
+    {
+      icon: "fas fa-user",
+      title: "アカウント設定",
+      desc: "プロフィール・パスワード変更",
+    },
+    {
+      icon: "fas fa-link",
+      title: "連携設定",
+      desc: "Googleカレンダー・Slack連携",
+    },
+    {
+      icon: "fas fa-users-cog",
+      title: "ユーザー設定",
+      desc: "メンバー管理・権限変更",
+    },
+    {
+      icon: "fas fa-building",
+      title: "代理店設定",
+      desc: "代理店向け機能（将来的に追加）",
+    },
+  ];
+
   return (
-    <div className="settings-wrapper">
-      {/* タイトルを中央揃え */}
-      <div className="settings-title">
-        <h1>設定</h1>
-      </div>
+    <div className="min-h-screen px-4 py-10 bg-gray-50">
+      <div className="max-w-6xl mx-auto">
+        <h1 className="text-2xl font-bold text-center text-gray-800 mb-10">設定</h1>
 
-      {/* 設定項目 */}
-      <div className="settings-container">
-        <Link href="/preparing" className="settings-card">
-          <i className="fas fa-envelope"></i>
-          <h3>メール設定</h3>
-          <p>メールテンプレート編集・自動送信設定</p>
-        </Link>
-
-        <Link href="/preparing" className="settings-card">
-          <i className="fas fa-credit-card"></i>
-          <h3>支払い設定</h3>
-          <p>プラン変更・支払い履歴</p>
-        </Link>
-
-        <Link href="/preparing" className="settings-card">
-          <i className="fas fa-database"></i>
-          <h3>データ設定</h3>
-          <p>バックアップ・データエクスポート</p>
-        </Link>
-
-        <Link href="/preparing" className="settings-card">
-          <i className="fas fa-bell"></i>
-          <h3>通知設定</h3>
-          <p>メール通知・重要なお知らせ</p>
-        </Link>
-
-        <Link href="/preparing" className="settings-card">
-          <i className="fas fa-user"></i>
-          <h3>アカウント設定</h3>
-          <p>プロフィール・パスワード変更</p>
-        </Link>
-
-        <Link href="/preparing" className="settings-card">
-          <i className="fas fa-link"></i>
-          <h3>連携設定</h3>
-          <p>Googleカレンダー・Slack連携</p>
-        </Link>
-
-        <Link href="/preparing" className="settings-card">
-          <i className="fas fa-users-cog"></i>
-          <h3>ユーザー設定</h3>
-          <p>メンバー管理・権限変更</p>
-        </Link>
-
-        <Link href="/preparing" className="settings-card">
-          <i className="fas fa-building"></i>
-          <h3>代理店設定</h3>
-          <p>代理店向け機能（将来的に追加）</p>
-        </Link>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {items.map((item, idx) => (
+            <Link
+              key={idx}
+              href="/preparing"
+              className="bg-white border border-gray-200 rounded-lg shadow-md hover:shadow-lg transition p-5 flex flex-col items-start space-y-2"
+            >
+              <i className={`${item.icon} text-xl text-blue-500`} />
+              <h3 className="text-lg font-semibold text-gray-800">{item.title}</h3>
+              <p className="text-sm text-gray-600">{item.desc}</p>
+            </Link>
+          ))}
+        </div>
       </div>
     </div>
   );

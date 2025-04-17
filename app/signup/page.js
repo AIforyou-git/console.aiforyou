@@ -2,7 +2,6 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import "@/app/signup/signup.css";
 
 export default function SignupPage() {
   return (
@@ -17,77 +16,72 @@ function SignupContent() {
   const [message, setMessage] = useState("");
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [referralCode, setReferralCode] = useState("HQ-ADMIN"); // 初期値をセット
+  const [referralCode, setReferralCode] = useState("HQ-ADMIN");
 
-  // ✅ `useEffect` で `referralCode` を取得 & バリデーション
   useEffect(() => {
     const ref = searchParams.get("ref") || "HQ-ADMIN";
     const validCodes = ["HQ-AGENCY", "HQ-USER", "HQ-CLIENT", "HQ-ADMIN"];
 
-    // 🔍 バリデーション（固定紹介コードに含まれているか）
     if (!validCodes.includes(ref)) {
       console.error("❌ 無効な紹介コード:", ref);
-      router.replace("/error-page?msg=invalid_ref"); // 🚫 無効ならエラーページへ
+      router.replace("/error-page?msg=invalid_ref");
       return;
     }
 
     setReferralCode(ref);
-    console.log("🔍 Referral Code Updated:", ref); // デバッグ用
   }, [searchParams]);
 
   const handleSignup = async () => {
     setMessage("処理中...");
-    console.log("🚀 Signup process started with email:", email);
-    console.log("📌 Referral Code:", referralCode);
-    
     try {
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, referredBy: referralCode }),
       });
-      
-      console.log("📨 API Request Sent: /api/auth/register", { email, referredBy: referralCode });
-      
+
       const data = await response.json();
-      console.log("🔍 API Response Received:", data);
-      
+
       if (response.ok) {
         setMessage("✅ 登録完了！ 仮パスワードが送信されました");
-        console.log("✅ Signup Successful! Redirecting to login...");
         setTimeout(() => {
           router.push("/login");
         }, 2000);
       } else {
         setMessage(`❌ 登録失敗: ${data.error}`);
-        console.error("❌ Signup Failed:", data.error);
       }
     } catch (error) {
       setMessage(`❌ エラー: ${error.message}`);
-      console.error("❌ API Request Error:", error);
     }
   };
 
   return (
-    <div className="signup-container">
-      <div className="signup-box">
-        <h1 className="signup-title">ようこそ！</h1>
-        <p className="signup-text">新しいアカウントを作成しましょう</p>
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-200 to-purple-400 px-4">
+      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md text-center">
+        <h1 className="text-3xl font-bold text-gray-800 mb-2">ようこそ！</h1>
+        <p className="text-gray-600 mb-4">新しいアカウントを作成しましょう</p>
+
         <input
           type="email"
-          className="signup-input"
           placeholder="メールアドレス"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2"
         />
-        <button onClick={handleSignup} className="signup-button">
+
+        <button
+          onClick={handleSignup}
+          className="w-full bg-blue-500 text-white py-2 mt-2 rounded-lg hover:bg-blue-600 transition"
+        >
           登録する
         </button>
-        <p className="signup-message">{message}</p>
 
-        {/* ✅ 管理者専用ボタン（元の判定を維持） */}
+        <p className="text-sm text-gray-600 mt-4">{message}</p>
+
         {referralCode === "HQ-ADMIN" && (
-          <button className="admin-button">管理者専用</button>
+          <button className="mt-4 bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800">
+            管理者専用
+          </button>
         )}
       </div>
     </div>

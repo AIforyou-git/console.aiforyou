@@ -1,4 +1,3 @@
-// /client-dashboard/invite/page.js
 "use client";
 
 import { useEffect, useState } from "react";
@@ -34,17 +33,15 @@ export default function ClientInvitePage() {
 
   const generateInviteUrl = async () => {
     if (!clientId) return;
-    const userRef = doc(db, "users", clientId);
     const referralCode = `CQ-CLIENT-${clientId}`;
     const url = `https://console.aiforyou.jp/signup-client?ref=${referralCode}`;
 
-    await setDoc(userRef, { clientInviteUrl: url }, { merge: true });
+    await setDoc(doc(db, "users", clientId), { clientInviteUrl: url }, { merge: true });
 
-    // ✅ referral コレクションにも追加
     await setDoc(doc(collection(db, "referral"), referralCode), {
       clientInviteUrl: url,
       createdAt: new Date(),
-      referralCode: referralCode,
+      referralCode,
       referrerId: clientId,
       referrerStatus: "active",
     });
@@ -63,33 +60,53 @@ export default function ClientInvitePage() {
   };
 
   return (
-    <div className="invite-page">
-      <h1>📨 紹介URLの発行</h1>
+    <div className="min-h-screen bg-gray-50 px-4 py-10">
+      <div className="max-w-xl mx-auto bg-white rounded-lg shadow-md p-6 space-y-6">
+        <h1 className="text-2xl font-bold text-gray-800">📨 紹介URLの発行</h1>
 
-      <button onClick={generateInviteUrl}>🔄 紹介URLを生成</button>
+        <button
+          onClick={generateInviteUrl}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded w-full"
+        >
+          🔄 紹介URLを生成
+        </button>
 
-      {inviteUrl && (
-        <div style={{ marginTop: "20px" }}>
-          <p>以下のURLを紹介に使えます ※このコンテンツは有料プランのみ：</p>
-          <input type="text" value={inviteUrl} readOnly style={{ width: "100%" }} />
-          <button onClick={copyToClipboard}>コピー</button>
+        {inviteUrl && (
+          <div className="space-y-2">
+            <p className="text-sm text-gray-700">
+              以下のURLを紹介に使えます（※このコンテンツは有料プランのみ）：
+            </p>
+            <input
+              type="text"
+              value={inviteUrl}
+              readOnly
+              className="w-full border border-gray-300 rounded px-3 py-2 bg-gray-100 text-sm"
+            />
+            <button
+              onClick={copyToClipboard}
+              className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded"
+            >
+              📋 コピー
+            </button>
+          </div>
+        )}
+
+        {message && (
+          <p className="text-sm text-green-600">{message}</p>
+        )}
+
+        <div className="space-y-2 pt-6">
+          <Link href="/client-dashboard/referred">
+            <button className="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">
+              📋 紹介一覧を見る
+            </button>
+          </Link>
+          <Link href="/client-dashboard">
+            <button className="w-full bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded">
+              🔙 戻る
+            </button>
+          </Link>
         </div>
-      )}
-
-      {message && <p>{message}</p>}
-
-      {/* 🔗 紹介一覧ページへのリンク */}
-      <div style={{ marginTop: "30px" }}>
-        <Link href="/client-dashboard/referred">
-          <button>📋 紹介一覧を見る</button>
-        </Link>
-      </div>
-
-      {/* 🔙 戻るボタンを追加 */}
-      <div style={{ marginTop: "20px" }}>
-        <Link href="/client-dashboard">
-          <button>🔙 戻る</button>
-        </Link>
       </div>
     </div>
   );

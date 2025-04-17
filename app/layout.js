@@ -5,16 +5,17 @@ import HeaderAdmin from "@/components/HeaderAdmin";
 import HeaderUser from "@/components/HeaderUser";
 import HeaderClient from "@/components/HeaderClient";
 import HeaderAgency from "@/components/HeaderAgency";
+import "../styles/globals.css"; // Tailwind を確実に読み込む
 
 export default function RootLayout({ children }) {
   const pathname = usePathname();
 
-  // `/preparing` だけは認証なしで表示
+  // `/preparing` ページは認証・ヘッダーなしでそのまま表示
   if (pathname === "/preparing") {
     return (
       <html lang="ja">
-        <body>
-          <main>{children}</main>
+        <body className="text-gray-800 bg-gray-50 min-h-screen">
+          <main className="pt-8 px-6">{children}</main>
         </body>
       </html>
     );
@@ -33,10 +34,10 @@ export default function RootLayout({ children }) {
 
   return (
     <html lang="ja">
-      <body>
+      <body className="text-gray-800 bg-gray-50 min-h-screen">
         <AuthProvider>
           {HeaderComponent && <HeaderComponent />}
-          <main>{children}</main>
+          <main className="pt-8 px-6">{children}</main>
         </AuthProvider>
       </body>
     </html>

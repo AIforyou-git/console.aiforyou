@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
-import Link from "next/link";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import Link from "next/link";
+
+import Button from "@/components/ui/Button";
 
 export default function AdminDashboard() {
   const [adminId, setAdminId] = useState(null);
@@ -73,28 +75,32 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="admin-dashboard">
-      <h1>管理者ダッシュボード</h1>
+    <div className="p-6 max-w-4xl mx-auto">
+      <h1 className="text-2xl font-bold mb-4">管理者ダッシュボード</h1>
 
-      {/* 🔹 ログイン情報表示 */}
-      <p>ログイン中: {email}</p>
-      <p>ステータス: {status}</p>
+      <div className="bg-white rounded-lg shadow p-4 mb-6">
+        <p className="text-sm text-gray-600">
+          <span className="font-semibold">ログイン中:</span> {email}
+        </p>
+        <p className="text-sm text-gray-600">
+          <span className="font-semibold">ステータス:</span> {status}
+        </p>
+      </div>
 
-      {/* 🔹 ナビゲーションボタン */}
-      <div style={{ marginTop: "20px" }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Link href="/admin-dashboard/users">
-          <button>👥 ユーザー管理</button>
+          <Button variant="secondary" className="w-full">👥 ユーザー管理</Button>
         </Link>
 
         <Link href="/admin-dashboard/invite">
-          <button>🔗 紹介URLの作成</button>
+          <Button variant="secondary" className="w-full">🔗 紹介URLの作成</Button>
         </Link>
 
         <Link href="/admin-dashboard/account">
-          <button>⚙️ アカウント設定</button>
+          <Button variant="secondary" className="w-full">⚙️ アカウント設定</Button>
         </Link>
 
-        <button onClick={handleLogout}>🚪 ログアウト</button>
+        <Button onClick={handleLogout} variant="destructive" className="w-full">🚪 ログアウト</Button>
       </div>
     </div>
   );

@@ -1,13 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faHome, faUser, faCog, faSignOutAlt, faInfoCircle } from "@fortawesome/free-solid-svg-icons";
+import { faHome, faUser, faCog, faSignOutAlt } from "@fortawesome/free-solid-svg-icons";
 import { signOut } from "firebase/auth";
 import { firebaseAuth } from "@/lib/firebase";
-import { useRouter } from "next/navigation";
-import "@/styles/header.css";
 
 export default function HeaderClient() {
   const pathname = usePathname();
@@ -25,28 +23,30 @@ export default function HeaderClient() {
   if (pathname === "/login") return null;
 
   return (
-    <header className="header">
-      <div className="logo">AIforyou Client</div>
+    <header className="fixed top-0 left-0 w-full z-50 bg-[#2c3e50] text-white px-4 py-3 shadow-md flex justify-between items-center">
+      {/* ロゴ */}
+      <div className="text-lg font-semibold tracking-wide">Alforyou Client</div>
+
+      {/* メニューアイコン */}
       <nav>
-        <ul className="menu">
-          <li data-tooltip="ホーム">
+        <ul className="flex items-center gap-6 text-xl">
+          <li title="ホーム">
             <Link href="/client-dashboard">
               <FontAwesomeIcon icon={faHome} />
             </Link>
           </li>
-          {/* 🔥 未実装ページは準備中ページへ誘導 */}
-          <li data-tooltip="プロフィール">
+          <li title="プロフィール">
             <Link href="/client-dashboard/create">
               <FontAwesomeIcon icon={faUser} />
             </Link>
           </li>
-          <li data-tooltip="設定">
-          <Link href="/client-dashboard/settings">
+          <li title="設定">
+            <Link href="/client-dashboard/settings">
               <FontAwesomeIcon icon={faCog} />
             </Link>
           </li>
-          <li data-tooltip="ログアウト">
-            <button className="logout-button" onClick={handleLogout}>
+          <li title="ログアウト">
+            <button onClick={handleLogout}>
               <FontAwesomeIcon icon={faSignOutAlt} />
             </button>
           </li>

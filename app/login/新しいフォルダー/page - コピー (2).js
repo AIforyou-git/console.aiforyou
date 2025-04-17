@@ -5,18 +5,20 @@ import { useRouter } from "next/navigation";
 import { firebaseAuth, db } from "@/lib/firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
-import { useAuth } from "@/lib/authProvider";
+import { useAuth } from "@/lib/authProvider"; // ✅ 追加
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const router = useRouter();
-  const { user, loading } = useAuth();
+  const { user, loading } = useAuth(); // ✅ 追加
 
   // ✅ ログイン済みユーザーは自動でリダイレクト
   useEffect(() => {
-    if (!loading && user && user.role) {
+    if (loading) return;
+
+    if (user && user.role) {
       const roleRedirects = {
         client: "/client-dashboard",
         agency: "/agency-dashboard",
@@ -55,11 +57,6 @@ export default function LoginPage() {
       setErrorMessage("❌ ログインに失敗しました。メールアドレスまたはパスワードを確認してください。");
     }
   };
-
-  // ✅ 認証状態が未確定な間は何も描画しない（チラつき回避）
-  if (loading) {
-    return <div className="min-h-screen bg-white" />;
-  }
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100 px-4">

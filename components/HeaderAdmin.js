@@ -1,12 +1,19 @@
 "use client";
+
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faHome, faBuilding, faUsers, faUserTie, faInfoCircle, faCog, faSignOutAlt } from "@fortawesome/free-solid-svg-icons";
+import {
+  faHome,
+  faBuilding,
+  faUsers,
+  faUserTie,
+  faInfoCircle,
+  faCog,
+  faSignOutAlt,
+} from "@fortawesome/free-solid-svg-icons";
 import { signOut } from "firebase/auth";
 import { firebaseAuth } from "@/lib/firebase";
-import { useRouter } from "next/navigation";
-import "@/styles/header.css";
 
 export default function HeaderAdmin() {
   const pathname = usePathname();
@@ -24,42 +31,45 @@ export default function HeaderAdmin() {
   if (pathname === "/login") return null;
 
   return (
-    <header className="header">
-      <div className="logo">AIforyou Admin</div>
+    <header className="fixed top-0 left-0 w-full z-50 bg-[#1c2b3a] text-white px-4 py-3 shadow-md flex justify-between items-center">
+      {/* ロゴ */}
+      <div className="text-lg font-semibold tracking-wide">AIforyou Admin</div>
+
+      {/* ナビメニュー */}
       <nav>
-        <ul className="menu">
-          <li data-tooltip="ホーム">
+        <ul className="flex items-center gap-6 text-xl">
+          <li title="ホーム">
             <Link href="/admin-dashboard">
               <FontAwesomeIcon icon={faHome} />
             </Link>
           </li>
-          <li data-tooltip="代理店管理">
+          <li title="代理店管理">
             <Link href="/preparing">
               <FontAwesomeIcon icon={faBuilding} />
             </Link>
           </li>
-          <li data-tooltip="ユーザー管理">
+          <li title="ユーザー管理">
             <Link href="/preparing">
               <FontAwesomeIcon icon={faUsers} />
             </Link>
           </li>
-          <li data-tooltip="クライアント管理">
+          <li title="クライアント管理">
             <Link href="/admin-dashboard/customers">
               <FontAwesomeIcon icon={faUserTie} />
             </Link>
           </li>
-          <li data-tooltip="情報">
+          <li title="情報">
             <Link href="/admin-dashboard/info">
               <FontAwesomeIcon icon={faInfoCircle} />
             </Link>
           </li>
-          <li data-tooltip="設定">
+          <li title="設定">
             <Link href="/admin-dashboard/settings">
               <FontAwesomeIcon icon={faCog} />
             </Link>
           </li>
-          <li data-tooltip="ログアウト">
-            <button className="logout-button" onClick={handleLogout}>
+          <li title="ログアウト">
+            <button onClick={handleLogout}>
               <FontAwesomeIcon icon={faSignOutAlt} />
             </button>
           </li>

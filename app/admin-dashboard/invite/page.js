@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
+import Link from "next/link";
 
 export default function InvitePage() {
   const [adminId, setAdminId] = useState(null);
@@ -35,11 +36,12 @@ export default function InvitePage() {
 
   const generateUrls = async () => {
     if (!adminId) return;
-    const docRef = doc(db, "admin", adminId);
+
     const agencyInviteUrl = `https://console.aiforyou.jp/signup?ref=HQ-AGENCY`;
     const userInviteUrl = `https://console.aiforyou.jp/signup?ref=HQ-USER`;
     const clientInviteUrl = `https://console.aiforyou.jp/signup?ref=HQ-CLIENT`;
 
+    const docRef = doc(db, "admin", adminId);
     await setDoc(
       docRef,
       {
@@ -66,30 +68,87 @@ export default function InvitePage() {
   };
 
   return (
-    <div className="invite-page">
-      <h1>紹介URLの作成</h1>
+    <div className="p-6 max-w-3xl mx-auto">
+      <h1 className="text-2xl font-bold mb-6">紹介URLの作成</h1>
 
-      <button onClick={generateUrls}>🔄 紹介URLを再生成</button>
+      <button
+        onClick={generateUrls}
+        className="mb-6 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+      >
+        🔄 紹介URLを再生成
+      </button>
 
-      <div style={{ marginTop: "20px" }}>
-        <h3>代理店登録用URL</h3>
-        <input type="text" value={agencyUrl} readOnly />
-        <button onClick={() => copyToClipboard(agencyUrl)}>コピー</button>
+      <div className="space-y-6">
+        {/* 代理店 */}
+        <div>
+          <h3 className="text-lg font-semibold mb-1">代理店登録用URL</h3>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              readOnly
+              value={agencyUrl}
+              className="w-full px-3 py-2 border border-gray-300 rounded bg-gray-100 text-sm"
+            />
+            <button
+              onClick={() => copyToClipboard(agencyUrl)}
+              className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 text-sm"
+            >
+              コピー
+            </button>
+          </div>
+        </div>
+
+        {/* ユーザー */}
+        <div>
+          <h3 className="text-lg font-semibold mb-1">ユーザー登録用URL</h3>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              readOnly
+              value={userUrl}
+              className="w-full px-3 py-2 border border-gray-300 rounded bg-gray-100 text-sm"
+            />
+            <button
+              onClick={() => copyToClipboard(userUrl)}
+              className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 text-sm"
+            >
+              コピー
+            </button>
+          </div>
+        </div>
+
+        {/* クライアント */}
+        <div>
+          <h3 className="text-lg font-semibold mb-1">クライアント登録用URL</h3>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              readOnly
+              value={clientUrl}
+              className="w-full px-3 py-2 border border-gray-300 rounded bg-gray-100 text-sm"
+            />
+            <button
+              onClick={() => copyToClipboard(clientUrl)}
+              className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 text-sm"
+            >
+              コピー
+            </button>
+          </div>
+        </div>
       </div>
 
-      <div>
-        <h3>ユーザー登録用URL</h3>
-        <input type="text" value={userUrl} readOnly />
-        <button onClick={() => copyToClipboard(userUrl)}>コピー</button>
-      </div>
+      {message && (
+        <p className="mt-4 text-sm text-green-600 font-medium">{message}</p>
+      )}
 
-      <div>
-        <h3>クライアント登録用URL</h3>
-        <input type="text" value={clientUrl} readOnly />
-        <button onClick={() => copyToClipboard(clientUrl)}>コピー</button>
+      {/* 戻るボタン */}
+      <div className="mt-8">
+        <Link href="/admin-dashboard">
+          <button className="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400">
+            ← ダッシュボードに戻る
+          </button>
+        </Link>
       </div>
-
-      {message && <p>{message}</p>}
     </div>
   );
 }
