@@ -12,31 +12,30 @@ import {
   faCog,
   faSignOutAlt,
 } from "@fortawesome/free-solid-svg-icons";
-import { signOut } from "firebase/auth";
-import { firebaseAuth } from "@/lib/firebase";
+
+import { useAuth } from "@/lib/authProvider";
+import { AlertDialog } from "@/components/ui/alert-dialog";
 
 export default function HeaderAgency() {
   const pathname = usePathname();
   const router = useRouter();
+  const { logout } = useAuth();
 
   const handleLogout = async () => {
     try {
-      await signOut(firebaseAuth);
-      router.push("/login");
+      await logout();
+      router.replace("/login?logout=1");
     } catch (error) {
       console.error("❌ ログアウトに失敗しました:", error);
     }
   };
 
-  // ログイン画面では非表示
   if (pathname === "/login") return null;
 
   return (
     <header className="fixed top-0 left-0 w-full z-50 bg-[#1c2b3a] text-white px-4 py-3 shadow-md flex justify-between items-center">
-      {/* ロゴ */}
       <div className="text-lg font-semibold tracking-wide">AIforyou Agency</div>
 
-      {/* ナビゲーション */}
       <nav>
         <ul className="flex items-center gap-6 text-xl">
           <li title="ホーム">
@@ -55,7 +54,7 @@ export default function HeaderAgency() {
             </Link>
           </li>
           <li title="クライアント管理">
-            <Link href="/agency-dashboard/customers">
+          <Link href="/preparing">
               <FontAwesomeIcon icon={faUserTie} />
             </Link>
           </li>
@@ -70,9 +69,12 @@ export default function HeaderAgency() {
             </Link>
           </li>
           <li title="ログアウト">
-            <button onClick={handleLogout}>
-              <FontAwesomeIcon icon={faSignOutAlt} />
-            </button>
+            <AlertDialog
+              trigger={<FontAwesomeIcon icon={faSignOutAlt} />}
+              title="ログアウトしますか？"
+              description="代理店セッションを終了します。よろしいですか？"
+              onConfirm={handleLogout}
+            />
           </li>
         </ul>
       </nav>

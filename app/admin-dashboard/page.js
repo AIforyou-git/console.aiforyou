@@ -1,78 +1,85 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
-import { db } from "@/lib/firebase";
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { useAuth } from "@/lib/authProvider";
+import { supabase } from "@/lib/supabaseClient";
 import Link from "next/link";
-
 import Button from "@/components/ui/Button";
 
 export default function AdminDashboard() {
-  const [adminId, setAdminId] = useState(null);
-  const [email, setEmail] = useState("");
+  const { user, loading } = useAuth();
   const [status, setStatus] = useState("");
 
-  const auth = getAuth();
-
+  // 🔥 修正版：ISO8601形式で日本時間を返す
   const getJapanTime = () => {
-    return new Date().toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" });
+    const now = new Date();
+    now.setHours(now.getHours() + 9);
+    return now.toISOString();
   };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        setAdminId(user.uid);
-        setEmail(user.email);
+    const updateUserInfo = async () => {
+      if (!user || !user.id || user.role !== "admin") return;
 
-        const userRef = doc(db, "users", user.uid);
-        const userSnap = await getDoc(userRef);
+      const { data, error } = await supabase
+        .from("users")
+        .select("*")
+        .eq("id", user.id)
+        .single();
 
-        if (!userSnap.exists()) {
-          await setDoc(userRef, {
-            uid: user.uid,
-            email: user.email,
-            role: "admin",
-            status: "active",
-            referredBy: null,
-            createdAt: getJapanTime(),
-            lastLogin: getJapanTime(),
-          });
+      const now = getJapanTime();
+
+      if (error && error.code === "PGRST116") {
+        await supabase.from("users").insert({
+          id: user.id,
+          email: user.email,
+          role: "admin",
+          status: "active",
+          referredBy: null,
+          createdAt: now,
+          last_login: now,
+        });
+        setStatus("active");
+      } else if (data) {
+        if (data.status === "pending") {
+          await supabase
+            .from("users")
+            .update({ status: "active", last_login: now })
+            .eq("id", user.id);
           setStatus("active");
         } else {
-          const userData = userSnap.data();
-          setStatus(userData.status);
-
-          if (userData.status === "pending") {
-            await updateDoc(userRef, {
-              status: "active",
-              lastLogin: getJapanTime(),
-            });
-            setStatus("active");
-          } else {
-            await updateDoc(userRef, { lastLogin: getJapanTime() });
-          }
+          await supabase
+            .from("users")
+            .update({ last_login: now })
+            .eq("id", user.id);
+          setStatus(data.status || "active");
         }
-      } else {
-        setAdminId(null);
-        setEmail("");
-        setStatus("");
       }
-    });
+    };
 
-    return () => unsubscribe();
-  }, []);
+    updateUserInfo();
+  }, [user]);
 
   const handleLogout = async () => {
     try {
-      await signOut(auth);
-      setAdminId(null);
-      setEmail("");
+      await supabase.auth.signOut();
       alert("ログアウトしました！");
-    } catch (error) {
-      alert("ログアウトに失敗しました: " + error.message);
+    } catch (err) {
+      if (err instanceof Error) {
+        alert("ログアウトに失敗しました: " + err.message);
+      } else {
+        alert("ログアウトに失敗しました。");
+      }
     }
   };
+
+  if (loading) {
+    return <div className="p-6">読み込み中...</div>;
+  }
+
+  if (!user || user.role !== "admin") {
+    return <div className="p-6 text-red-500">アクセス権がありません。</div>;
+  }
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
@@ -80,7 +87,7 @@ export default function AdminDashboard() {
 
       <div className="bg-white rounded-lg shadow p-4 mb-6">
         <p className="text-sm text-gray-600">
-          <span className="font-semibold">ログイン中:</span> {email}
+          <span className="font-semibold">ログイン中:</span> {user.email}
         </p>
         <p className="text-sm text-gray-600">
           <span className="font-semibold">ステータス:</span> {status}
@@ -89,18 +96,26 @@ export default function AdminDashboard() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Link href="/admin-dashboard/users">
-          <Button variant="secondary" className="w-full">👥 ユーザー管理</Button>
+          <Button variant="secondary" className="w-full">
+            👥 ユーザー管理
+          </Button>
         </Link>
 
         <Link href="/admin-dashboard/invite">
-          <Button variant="secondary" className="w-full">🔗 紹介URLの作成</Button>
+          <Button variant="secondary" className="w-full">
+            🔗 紹介URLの送信
+          </Button>
         </Link>
 
         <Link href="/admin-dashboard/account">
-          <Button variant="secondary" className="w-full">⚙️ アカウント設定</Button>
+          <Button variant="secondary" className="w-full">
+            ⚙️ アカウント設定
+          </Button>
         </Link>
 
-        <Button onClick={handleLogout} variant="destructive" className="w-full">🚪 ログアウト</Button>
+        <Button onClick={handleLogout} variant="destructive" className="w-full">
+          🚪 ログアウト
+        </Button>
       </div>
     </div>
   );

@@ -1,115 +1,90 @@
 "use client";
-
 import { useEffect, useState } from "react";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs } from "firebase/firestore";
-import Link from "next/link";
+import { supabase } from "@/lib/supabaseClient";
+import { useAuth } from "@/lib/authProvider";
 
-export default function ClientReferredList() {
+export default function ReferredClientsPage() {
+  const { user } = useAuth();
   const [clients, setClients] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [currentUser, setCurrentUser] = useState(null);
-  const auth = getAuth();
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        setCurrentUser(user);
-      }
-    });
-    return () => unsubscribe();
-  }, []);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchClients = async () => {
-      if (!currentUser) return;
-      setLoading(true);
+      if (!user) return;
+
       try {
-        const q = query(
-          collection(db, "users"),
-          where("role", "==", "client"),
-          where("referredBy", "==", currentUser.uid)
-        );
-        const querySnapshot = await getDocs(q);
-        const data = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setClients(data);
-      } catch (error) {
-        console.error("❌ クライアント取得エラー:", error);
-      } finally {
-        setLoading(false);
+        const { data: relations, error: relationError } = await supabase
+          .from("referral_relations")
+          .select("*")
+          .eq("referrer_id", user.id);
+
+        if (relationError) throw relationError;
+
+        const referredIds = relations.map((r) => r.referred_id);
+
+        const { data: clientInfo, error: clientError } = await supabase
+          .from("clients")
+          .select("uid, name, created_at")
+          .in("uid", referredIds);
+
+        if (clientError) throw clientError;
+
+        const merged = relations.map((rel) => {
+          const client = clientInfo.find((c) => c.uid === rel.referred_id);
+          return {
+            id: rel.referred_id,
+            name: client?.name ?? "（未登録）",
+            created_at: client?.created_at ?? null,
+            masked_email: rel.referred_email_masked,
+            status: rel.referred_status ?? "未設定",
+          };
+        });
+
+        setClients(merged);
+      } catch (err) {
+        console.error("紹介クライアント取得エラー：", err.message);
+        setError("紹介されたクライアントの取得に失敗しました。");
       }
     };
 
     fetchClients();
-  }, [currentUser]);
-
-  // メールアドレスを部分的にマスク
-  const maskEmail = (email) => {
-    if (!email) return "-";
-    const atIndex = email.indexOf("@");
-    const local = atIndex > 0 ? email.slice(0, atIndex) : email;
-    if (local.length <= 6) return local[0] + "****"; // 短すぎる場合
-  
-    const prefix = local.slice(0, 3);
-    const suffix = local.slice(-4);
-    return `${prefix}****${suffix}`;
-  };
-  
+  }, [user]);
 
   return (
-    <div className="min-h-screen bg-gray-50 px-4 py-8">
-      <div className="max-w-4xl mx-auto bg-white rounded-lg shadow p-6">
-        <h1 className="text-2xl font-bold text-gray-800 mb-6">📋 紹介したクライアント一覧</h1>
+    <div className="p-6 max-w-3xl mx-auto">
+      <h1 className="text-2xl font-semibold mb-6 text-gray-800 border-b pb-2">📄 紹介したクライアント一覧</h1>
 
-        {loading ? (
-          <p className="text-gray-600">読み込み中...</p>
-        ) : clients.length === 0 ? (
-          <p className="text-gray-600">紹介されたクライアントがまだ存在しません。</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full border border-gray-300 text-sm">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="px-3 py-2 border">名前</th>
-                  <th className="px-3 py-2 border">メール</th>
-                  <th className="px-3 py-2 border">登録日時</th>
-                  <th className="px-3 py-2 border">ステータス</th>
-                </tr>
-              </thead>
-              <tbody>
-                {clients.map((client) => (
-                  <tr key={client.id} className="hover:bg-gray-50">
-                    <td className="px-3 py-2 border">
-                      {client.name?.trim() || "未登録"}
-                    </td>
-                    <td className="px-3 py-2 border">
-                      {maskEmail(client.email)}
-                    </td>
-                    <td className="px-3 py-2 border">
-                      {client.createdAt?.seconds
-                        ? new Date(client.createdAt.seconds * 1000).toLocaleString("ja-JP")
-                        : "-"}
-                    </td>
-                    <td className="px-3 py-2 border">{client.status}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+      {error && <p className="text-red-500">{error}</p>}
 
-        <div className="mt-6">
-          <Link href="/client-dashboard/invite">
-            <button className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded">
-              🔙 戻る
-            </button>
-          </Link>
-        </div>
-      </div>
+      {clients.length === 0 ? (
+        <p className="text-gray-600">紹介されたクライアントがまだ存在しません。</p>
+      ) : (
+        <ul className="space-y-4">
+          {clients.map((client) => (
+            <li key={client.id} className="p-5 bg-white rounded-2xl shadow-md border border-gray-200">
+              <div className="text-lg font-bold text-gray-800 mb-1">{client.name}</div>
+              <div className="text-sm text-gray-500 mb-2">
+                登録日: {client.created_at ? new Date(client.created_at).toLocaleDateString() : "未登録"}
+              </div>
+              <div className="mb-1">
+                <span className="inline-block px-2 py-1 text-xs font-semibold rounded bg-blue-100 text-blue-700">
+                  ステータス: {client.status}
+                </span>
+              </div>
+              <div className="text-sm text-gray-400">
+                メール（マスク済）: {client.masked_email ?? "未取得"}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <button
+        onClick={() => history.back()}
+        className="mt-6 inline-block px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded shadow-sm"
+      >
+        ← 戻る
+      </button>
     </div>
   );
 }

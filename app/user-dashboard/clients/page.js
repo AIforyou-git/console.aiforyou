@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs } from "firebase/firestore";
+// TODO: Firebase廃止予定、一時コメントアウト
+//import { getAuth, onAuthStateChanged } from "firebase/auth";
+//import { db } from "@/lib/firebase";
+//import { collection, query, where, getDocs } from "firebase/firestore";
 
 export default function ClientList() {
   const [clients, setClients] = useState([]);

@@ -1,4 +1,0 @@
-📌 【マーク: 2025/04/16 15:27】
-✅ signup-client のTailwind UI適用・構成維持で完了
-✅ SignupClientPageClient.js に統合、CSS削除方向へ
-✅ ref=CQ-CLIENT-... の紹介URLで問題なく表示

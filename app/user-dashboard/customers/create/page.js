@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { firebaseAuth, db } from "@/lib/firebase";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
+import { useAuth } from "@/lib/authProvider";
 import Link from "next/link";
 
 const PREFECTURES = [
@@ -17,65 +17,103 @@ const PREFECTURES = [
 ];
 
 const INDUSTRIES = [
-  "IT・ソフトウェア", "製造業", "建設業", "運輸・物流", "小売・卸売",
-  "医療・福祉", "教育・学習支援", "飲食・宿泊業", "金融業", "サービス業", "その他"
+  "農業，林業", "漁業","鉱業，採石業，砂利採取業","建設業","製造業","電気・ガス・熱供給・水道業","情報通信業","運輸業，郵便業","卸売業，小売業","金融業，保険業","不動産業，物品賃貸業","学術研究，専門・技術サービス業","宿泊業，飲食サービス業","生活関連サービス業，娯楽業","教育，学習支援業","医療，福祉","複合サービス事業","サービス業（他に分類されないもの）","公務（他に分類されるものを除く）","分類不能の産業"
 ];
 
 export default function ClientUpdatePage() {
-  const [user, setUser] = useState(null);
+  const { user, loading } = useAuth();
+
+  const [userInfo, setUserInfo] = useState(null);
+  const [clientInfo, setClientInfo] = useState(null);
+
   const [company, setCompany] = useState("");
   const [position, setPosition] = useState("");
   const [name, setName] = useState("");
   const [regionPrefecture, setRegionPrefecture] = useState("");
   const [regionCity, setRegionCity] = useState("");
   const [industry, setIndustry] = useState("");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(""); // 表示専用
   const [memo, setMemo] = useState("");
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    const unsubscribe = firebaseAuth.onAuthStateChanged(async (currentUser) => {
-      if (currentUser) {
-        setUser(currentUser);
-        const clientRef = doc(db, "clients", currentUser.uid);
-        const clientSnap = await getDoc(clientRef);
-        if (clientSnap.exists()) {
-          const data = clientSnap.data();
-          setCompany(data.company || "");
-          setPosition(data.position || "");
-          setName(data.name || "");
-          setRegionPrefecture(data.regionPrefecture || "");
-          setRegionCity(data.regionCity || "");
-          setIndustry(data.industry || "");
-          setEmail(data.email || "");
-          setMemo(data.memo || "");
+    const fetchAll = async () => {
+      if (!user?.id) return;
+
+      try {
+        const { data: userData, error: userError } = await supabase
+          .from("users")
+          .select("*")
+          .eq("id", user.id)
+          .single();
+
+        const { data: clientData, error: clientError } = await supabase
+          .from("clients")
+          .select("*")
+          .eq("uid", user.id)
+          .maybeSingle();
+
+        if (userError) throw userError;
+        setUserInfo(userData);
+        setClientInfo(clientData);
+
+        if (clientData) {
+          setCompany(clientData.company || "");
+          setPosition(clientData.position || "");
+          setName(clientData.name || "");
+          setRegionPrefecture(clientData.region_prefecture || "");
+          setRegionCity(clientData.region_city || "");
+          setIndustry((clientData.industry || "").trim());
+          setMemo(clientData.memo || "");
         }
+
+        setEmail(userData.email || "");
+
+      } catch (error) {
+        console.error("全体取得エラー:", error.message);
+        setMessage("❌ 情報の取得に失敗しました");
       }
-    });
-    return () => unsubscribe();
-  }, []);
+    };
+
+    if (!loading) fetchAll();
+  }, [user, loading]);
 
   const registerClient = async () => {
-    if (!user) return;
+    if (!user?.id) return;
+
     try {
-      const clientRef = doc(db, "clients", user.uid);
-      await updateDoc(clientRef, {
-        company,
-        position,
-        name,
-        regionPrefecture,
-        regionCity,
-        industry,
-        email,
-        memo,
-        updatedAt: new Date(),
-      });
+      const now = new Date().toISOString();
+
+      const { error } = await supabase
+        .from("clients")
+        .upsert({
+          uid: user.id,
+          company,
+          position,
+          name,
+          region_prefecture: regionPrefecture,
+          region_city: regionCity,
+          industry,
+          memo,
+          profile_completed: true,
+          updated_at: now,
+        }, {
+          onConflict: "uid"
+        });
+
+      if (error) throw error;
+
       setMessage("✅ 登録内容を更新しました！");
     } catch (error) {
-      console.error("更新失敗:", error);
+      console.error("更新失敗:", error.message);
       setMessage("❌ 登録内容の更新に失敗しました");
     }
   };
+
+  const effectiveIndustries =
+    industry && !INDUSTRIES.includes(industry)
+      ? [industry, ...INDUSTRIES]
+      : INDUSTRIES;
 
   return (
     <div className="min-h-screen px-4 py-8 bg-gray-50">
@@ -99,7 +137,7 @@ export default function ClientUpdatePage() {
 
           <div>
             <label className="block mb-1 text-sm font-medium">メールアドレス:</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full border border-gray-300 rounded px-3 py-2" />
+            <input type="email" value={email} disabled className="w-full border border-gray-300 rounded px-3 py-2 bg-gray-100 text-gray-500" />
           </div>
 
           <div>
@@ -121,7 +159,7 @@ export default function ClientUpdatePage() {
             <label className="block mb-1 text-sm font-medium">業種:</label>
             <select value={industry} onChange={(e) => setIndustry(e.target.value)} className="w-full border border-gray-300 rounded px-3 py-2">
               <option value="">業種を選択</option>
-              {INDUSTRIES.map((ind) => (
+              {effectiveIndustries.map((ind) => (
                 <option key={ind} value={ind}>{ind}</option>
               ))}
             </select>
@@ -143,7 +181,7 @@ export default function ClientUpdatePage() {
         </form>
 
         <div className="pt-8 text-center">
-          <Link href="/client-dashboard">
+          <Link href="/user-dashboard">
             <button className="bg-gray-500 hover:bg-gray-600 text-white text-sm px-5 py-2 rounded">
               ⬅️ ダッシュボードへ戻る
             </button>

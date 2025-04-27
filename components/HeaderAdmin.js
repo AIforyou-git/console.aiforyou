@@ -12,30 +12,49 @@ import {
   faCog,
   faSignOutAlt,
 } from "@fortawesome/free-solid-svg-icons";
-import { signOut } from "firebase/auth";
-import { firebaseAuth } from "@/lib/firebase";
+
+import { useAuth } from "@/lib/authProvider";
+import { AlertDialog } from "@/components/ui/alert-dialog";
+import { supabase } from "@/lib/supabaseClient"; // 🔥 追加（必須）
 
 export default function HeaderAdmin() {
   const pathname = usePathname();
   const router = useRouter();
+  const { logout, loading } = useAuth();
 
   const handleLogout = async () => {
     try {
-      await signOut(firebaseAuth);
-      router.push("/login");
+      // 🔥 まず現在ログイン中のユーザーを取得
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      const now = new Date().toISOString();
+
+      // 🔥 logout_logsにINSERT
+      if (user?.id) {
+        await supabase.from('logout_logs').insert([
+          {
+            uid: user.id,
+            logout_time: now,
+          },
+        ]);
+      }
+
+      // 🔥 その後ログアウト処理
+      await logout();
+      router.replace("/login?logout=1");
     } catch (error) {
       console.error("❌ ログアウトに失敗しました:", error);
     }
   };
 
-  if (pathname === "/login") return null;
+  if (loading || pathname === "/login") return null;
 
   return (
     <header className="fixed top-0 left-0 w-full z-50 bg-[#1c2b3a] text-white px-4 py-3 shadow-md flex justify-between items-center">
-      {/* ロゴ */}
       <div className="text-lg font-semibold tracking-wide">AIforyou Admin</div>
 
-      {/* ナビメニュー */}
       <nav>
         <ul className="flex items-center gap-6 text-xl">
           <li title="ホーム">
@@ -54,7 +73,7 @@ export default function HeaderAdmin() {
             </Link>
           </li>
           <li title="クライアント管理">
-            <Link href="/admin-dashboard/customers">
+          <Link href="/preparing">
               <FontAwesomeIcon icon={faUserTie} />
             </Link>
           </li>
@@ -69,9 +88,12 @@ export default function HeaderAdmin() {
             </Link>
           </li>
           <li title="ログアウト">
-            <button onClick={handleLogout}>
-              <FontAwesomeIcon icon={faSignOutAlt} />
-            </button>
+            <AlertDialog
+              trigger={<FontAwesomeIcon icon={faSignOutAlt} />}
+              title="ログアウトしますか？"
+              description="管理者セッションを終了します。よろしいですか？"
+              onConfirm={handleLogout}
+            />
           </li>
         </ul>
       </nav>

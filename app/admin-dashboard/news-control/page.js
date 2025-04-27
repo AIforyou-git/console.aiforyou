@@ -1,12 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClient } from '@supabase/supabase-js'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey)
+import scrapingClient from '@/lib/supabaseScrapingClient' // ✅ 修正
 
 const keywordOptions = ['補助金', '災害', '設備投資', '人材育成']
 const areaOptions = ['全国', '北海道', '東京', '大阪', '福岡']
@@ -32,24 +27,21 @@ export default function NewsControlPage() {
       const from = page * perPage
       const to = from + perPage - 1
 
-      let query = supabase
+      let query = scrapingClient
         .from('jnet_articles_public')
         .select('article_id, structured_title, structured_agency, structured_prefecture, structured_application_period, structured_summary_extract, structured_amount_max, detail_url')
         .eq('structured_success', true)
 
-      // 🔍 キーワード検索
       if (keyword) {
         query = query.or(`structured_title.ilike.%${keyword}%,structured_summary_extract.ilike.%${keyword}%`)
       }
 
-      // 🌐 エリアフィルター（例：東京 → 東京都 or 全国）
       if (area === '東京') {
         query = query.in('structured_prefecture', ['東京都', '全国'])
       } else if (area) {
         query = query.eq('structured_prefecture', area)
       }
 
-      // 🔁 並び順
       query = query.order(sortBy, { ascending })
 
       const { data, error } = await query.range(from, to)
@@ -103,7 +95,7 @@ export default function NewsControlPage() {
           onChange={(e) => {
             setPage(0)
             setSortBy(e.target.value)
-            setAscending(e.target.value !== 'structured_at') // 構造化日は降順、それ以外は昇順
+            setAscending(e.target.value !== 'structured_at')
           }}
           className="border px-3 py-2 rounded w-full md:w-1/4"
         >

@@ -1,154 +1,75 @@
-"use client";
+'use client';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
-import { useEffect, useState } from "react";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { db } from "@/lib/firebase";
-import { doc, getDoc, setDoc } from "firebase/firestore";
-import Link from "next/link";
+export default function CreateUserAdmin() {
+  const [email, setEmail] = useState('');
+  const [referralCode, setReferralCode] = useState('');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const router = useRouter();
 
-export default function InvitePage() {
-  const [adminId, setAdminId] = useState(null);
-  const [agencyUrl, setAgencyUrl] = useState("");
-  const [userUrl, setUserUrl] = useState("");
-  const [clientUrl, setClientUrl] = useState("");
-  const [message, setMessage] = useState("");
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
 
-  const auth = getAuth();
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        setAdminId(user.uid);
-        const docRef = doc(db, "admin", user.uid);
-        const docSnap = await getDoc(docRef);
-
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          setAgencyUrl(data.agencyInviteUrl || "");
-          setUserUrl(data.userInviteUrl || "");
-          setClientUrl(data.clientInviteUrl || "");
-        }
-      }
+    const res = await fetch('/api/auth/register-sb', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, referralCode }),
     });
 
-    return () => unsubscribe();
-  }, []);
+    const data = await res.json();
 
-  const generateUrls = async () => {
-    if (!adminId) return;
-
-    const agencyInviteUrl = `https://console.aiforyou.jp/signup?ref=HQ-AGENCY`;
-    const userInviteUrl = `https://console.aiforyou.jp/signup?ref=HQ-USER`;
-    const clientInviteUrl = `https://console.aiforyou.jp/signup?ref=HQ-CLIENT`;
-
-    const docRef = doc(db, "admin", adminId);
-    await setDoc(
-      docRef,
-      {
-        agencyInviteUrl,
-        userInviteUrl,
-        clientInviteUrl,
-      },
-      { merge: true }
-    );
-
-    setAgencyUrl(agencyInviteUrl);
-    setUserUrl(userInviteUrl);
-    setClientUrl(clientInviteUrl);
-    setMessage("✅ 紹介URLを再設定しました");
-  };
-
-  const copyToClipboard = async (url) => {
-    try {
-      await navigator.clipboard.writeText(url);
-      setMessage("📋 コピーしました！");
-    } catch (error) {
-      setMessage("❌ コピーに失敗しました");
+    if (!res.ok) {
+      setError(`エラー: ${data.error || '登録に失敗しました'}`);
+    } else {
+      setSuccess('✅ 登録に成功しました！');
+      setEmail('');
+      setReferralCode('');
+      setTimeout(() => {
+        router.push('/admin-dashboard/users');
+      }, 1000);
     }
   };
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">紹介URLの作成</h1>
+    <div className="max-w-md mx-auto mt-20 p-6 bg-white rounded shadow">
+      <h1 className="text-xl font-bold mb-4">新規ユーザー登録（管理画面）</h1>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <input
+          type="email"
+          placeholder="メールアドレス"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="w-full border p-2 rounded"
+          required
+        />
 
-      <button
-        onClick={generateUrls}
-        className="mb-6 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-      >
-        🔄 紹介URLを再生成
-      </button>
+        <select
+          value={referralCode}
+          onChange={(e) => setReferralCode(e.target.value)}
+          className="w-full border p-2 rounded"
+          required
+        >
+          <option value="">紹介コードを選択</option>
+          <option value="HQ-ADMIN">管理者用</option>
+          <option value="HQ-AGENCY">代理店用</option>
+          <option value="HQ-USER">ユーザー用</option>
+          <option value="HQ-CLIENT">クライアント用</option>
+        </select>
 
-      <div className="space-y-6">
-        {/* 代理店 */}
-        <div>
-          <h3 className="text-lg font-semibold mb-1">代理店登録用URL</h3>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              readOnly
-              value={agencyUrl}
-              className="w-full px-3 py-2 border border-gray-300 rounded bg-gray-100 text-sm"
-            />
-            <button
-              onClick={() => copyToClipboard(agencyUrl)}
-              className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 text-sm"
-            >
-              コピー
-            </button>
-          </div>
-        </div>
+        <button
+          type="submit"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+        >
+          ユーザー登録
+        </button>
+      </form>
 
-        {/* ユーザー */}
-        <div>
-          <h3 className="text-lg font-semibold mb-1">ユーザー登録用URL</h3>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              readOnly
-              value={userUrl}
-              className="w-full px-3 py-2 border border-gray-300 rounded bg-gray-100 text-sm"
-            />
-            <button
-              onClick={() => copyToClipboard(userUrl)}
-              className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 text-sm"
-            >
-              コピー
-            </button>
-          </div>
-        </div>
-
-        {/* クライアント */}
-        <div>
-          <h3 className="text-lg font-semibold mb-1">クライアント登録用URL</h3>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              readOnly
-              value={clientUrl}
-              className="w-full px-3 py-2 border border-gray-300 rounded bg-gray-100 text-sm"
-            />
-            <button
-              onClick={() => copyToClipboard(clientUrl)}
-              className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 text-sm"
-            >
-              コピー
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {message && (
-        <p className="mt-4 text-sm text-green-600 font-medium">{message}</p>
-      )}
-
-      {/* 戻るボタン */}
-      <div className="mt-8">
-        <Link href="/admin-dashboard">
-          <button className="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400">
-            ← ダッシュボードに戻る
-          </button>
-        </Link>
-      </div>
+      {error && <p className="text-red-600 mt-4">❌ {error}</p>}
+      {success && <p className="text-green-600 mt-4">{success}</p>}
     </div>
   );
 }

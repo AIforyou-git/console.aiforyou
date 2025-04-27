@@ -1,24 +1,32 @@
+// app/layout.js
 "use client";
+
 import { usePathname } from "next/navigation";
-import { AuthProvider } from "@/lib/authProvider";
+import { ToastProvider } from "@/components/ui/use-toast";
+import { AuthProvider, useAuth } from "@/lib/authProvider";
+
 import HeaderAdmin from "@/components/HeaderAdmin";
 import HeaderUser from "@/components/HeaderUser";
 import HeaderClient from "@/components/HeaderClient";
 import HeaderAgency from "@/components/HeaderAgency";
-import "../styles/globals.css"; // Tailwind を確実に読み込む
+import "../styles/globals.css";
 
-export default function RootLayout({ children }) {
+function LayoutContent({ children }) {
   const pathname = usePathname();
+  const { loading } = useAuth(); // ✅ 認証状態の取得
 
-  // `/preparing` ページは認証・ヘッダーなしでそのまま表示
-  if (pathname === "/preparing") {
-    return (
-      <html lang="ja">
-        <body className="text-gray-800 bg-gray-50 min-h-screen">
-          <main className="pt-8 px-6">{children}</main>
-        </body>
-      </html>
-    );
+  // ✅ loading 中は画面を白にして描画抑制（ちらつき・null崩壊防止）
+  if (loading) {
+    return <div className="w-screen h-screen bg-white" />;
+  }
+
+  const suppressHeaderPaths = ["/signup-sb", "/login-sb"];
+  const isSuppressed = suppressHeaderPaths.some((p) =>
+    pathname.startsWith(p)
+  );
+
+  if (pathname === "/preparing" || isSuppressed) {
+    return <main className="pt-8 px-6">{children}</main>;
   }
 
   let HeaderComponent = null;
@@ -33,12 +41,22 @@ export default function RootLayout({ children }) {
   }
 
   return (
+    <>
+      {HeaderComponent && <HeaderComponent />}
+      <main className="pt-8 px-6">{children}</main>
+    </>
+  );
+}
+
+export default function RootLayout({ children }) {
+  return (
     <html lang="ja">
       <body className="text-gray-800 bg-gray-50 min-h-screen">
-        <AuthProvider>
-          {HeaderComponent && <HeaderComponent />}
-          <main className="pt-8 px-6">{children}</main>
-        </AuthProvider>
+        <ToastProvider>
+          <AuthProvider> {/* ✅ Supabase context を全体に適用 */}
+            <LayoutContent>{children}</LayoutContent>
+          </AuthProvider>
+        </ToastProvider>
       </body>
     </html>
   );

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { firebaseAuth, db } from "@/lib/firebase";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
+import { useAuth } from "@/lib/authProvider";
 import Link from "next/link";
 
 const PREFECTURES = [
@@ -17,133 +17,121 @@ const PREFECTURES = [
 ];
 
 const INDUSTRIES = [
-  "農業，林業", "漁業","鉱業，採石業，砂利採取業","建設業","製造業","電気・ガス・熱供給・水道業","情報通信業","運輸業，郵便業","卸売業，小売業","金融業，保険業","不動産業，物品賃貸業","学術研究，専門・技術サービス業","宿泊業，飲食サービス業","生活関連サービス業，娯楽業","教育，学習支援業","医療，福祉","複合サービス事業","サービス業（他に分類されないもの）","公務（他に分類されるものを除く）","分類不能の産業"
+  "農業，林業", "漁業", "鉱業，採石業，砂利採取業", "建設業", "製造業",
+  "電気・ガス・熱供給・水道業", "情報通信業", "運輸業，郵便業", "卸売業，小売業",
+  "金融業，保険業", "不動産業，物品賃貸業", "学術研究，専門・技術サービス業",
+  "宿泊業，飲食サービス業", "生活関連サービス業，娯楽業", "教育，学習支援業",
+  "医療，福祉", "複合サービス事業", "サービス業（他に分類されないもの）",
+  "公務（他に分類されるものを除く）", "分類不能の産業"
 ];
 
 export default function ClientUpdatePage() {
-  const [user, setUser] = useState(null);
+  const { user, loading } = useAuth();
   const [company, setCompany] = useState("");
   const [position, setPosition] = useState("");
   const [name, setName] = useState("");
   const [regionPrefecture, setRegionPrefecture] = useState("");
   const [regionCity, setRegionCity] = useState("");
   const [industry, setIndustry] = useState("");
-  const [email, setEmail] = useState("");
   const [memo, setMemo] = useState("");
+  const [email, setEmail] = useState(""); // 表示専用
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    const unsubscribe = firebaseAuth.onAuthStateChanged(async (currentUser) => {
-      if (currentUser) {
-        setUser(currentUser);
-        const clientRef = doc(db, "clients", currentUser.uid);
-        const clientSnap = await getDoc(clientRef);
-        if (clientSnap.exists()) {
-          const data = clientSnap.data();
-          setCompany(data.company || "");
-          setPosition(data.position || "");
-          setName(data.name || "");
-          setRegionPrefecture(data.regionPrefecture || "");
-          setRegionCity(data.regionCity || "");
-          setIndustry((data.industry || "").trim()); // 🔧 trim追加
-          setEmail(data.email || "");
-          setMemo(data.memo || "");
+    const fetchAll = async () => {
+      if (!user?.id) return;
+
+      try {
+        const { data: userData, error: userError } = await supabase
+          .from("users")
+          .select("*")
+          .eq("id", user.id)
+          .single();
+
+        const { data: clientData, error: clientError } = await supabase
+          .from("clients")
+          .select("*")
+          .eq("uid", user.id)
+          .maybeSingle();
+
+        if (userError) throw userError;
+        if (clientError) throw clientError;
+
+        if (clientData) {
+          setCompany(clientData.company ?? "");
+          setPosition(clientData.position ?? "");
+          setName(clientData.name ?? "");
+          setRegionPrefecture(clientData.region_prefecture ?? "");
+          setRegionCity(clientData.region_city ?? "");
+          setIndustry((clientData.industry ?? "").trim());
+          setMemo(clientData.memo ?? "");
         }
+
+        setEmail(userData.email ?? "");
+      } catch (error) {
+        console.error("全体取得エラー:", (error instanceof Error ? error.message : error));
+        setMessage("❌ 情報の取得に失敗しました");
       }
-    });
-    return () => unsubscribe();
-  }, []);
+    };
+
+    if (!loading) fetchAll();
+  }, [user, loading]);
 
   const registerClient = async () => {
-    if (!user) return;
+    if (!user?.id) return;
+
     try {
-      const clientRef = doc(db, "clients", user.uid);
-      await updateDoc(clientRef, {
-        company,
-        position,
-        name,
-        regionPrefecture,
-        regionCity,
-        industry,
-        email,
-        memo,
-        updatedAt: new Date(), // ✅ 最終更新日追加
-      });
+      const now = new Date().toISOString();
+
+      const { error } = await supabase
+        .from("clients")
+        .upsert({
+          uid: user.id,
+          company,
+          position,
+          name,
+          region_prefecture: regionPrefecture,
+          region_city: regionCity,
+          industry,
+          memo,
+          profile_completed: true,
+          updated_at: now,
+        }, {
+          onConflict: "uid",
+        });
+
+      if (error) throw error;
+
       setMessage("✅ 登録内容を更新しました！");
     } catch (error) {
-      console.error("更新失敗:", error);
+      console.error("更新失敗:", (error instanceof Error ? error.message : error));
       setMessage("❌ 登録内容の更新に失敗しました");
     }
   };
 
-  // ✅ INDUSTRIES にない業種を先頭に含める
-  const effectiveIndustries =
-    industry && !INDUSTRIES.includes(industry)
-      ? [industry, ...INDUSTRIES]
-      : INDUSTRIES;
+  const effectiveIndustries = industry && !INDUSTRIES.includes(industry)
+    ? [industry, ...INDUSTRIES]
+    : INDUSTRIES;
 
   return (
     <div className="min-h-screen px-4 py-8 bg-gray-50">
       <div className="max-w-2xl mx-auto bg-white rounded-lg shadow p-6">
         <h2 className="text-2xl font-bold mb-4 text-gray-800">登録内容の更新</h2>
         <form className="space-y-4">
-          <div>
-            <label className="block mb-1 text-sm font-medium">会社名:</label>
-            <input type="text" value={company} onChange={(e) => setCompany(e.target.value)} className="w-full border border-gray-300 rounded px-3 py-2" />
-          </div>
-
-          <div>
-            <label className="block mb-1 text-sm font-medium">役職:</label>
-            <input type="text" value={position} onChange={(e) => setPosition(e.target.value)} className="w-full border border-gray-300 rounded px-3 py-2" />
-          </div>
-
-          <div>
-            <label className="block mb-1 text-sm font-medium">お名前:</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} required className="w-full border border-gray-300 rounded px-3 py-2" />
-          </div>
-
-          <div>
-            <label className="block mb-1 text-sm font-medium">メールアドレス:</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full border border-gray-300 rounded px-3 py-2" />
-          </div>
-
-          <div>
-            <label className="block mb-1 text-sm font-medium">都道府県:</label>
-            <select value={regionPrefecture} onChange={(e) => setRegionPrefecture(e.target.value)} required className="w-full border border-gray-300 rounded px-3 py-2">
-              <option value="">都道府県を選択</option>
-              {PREFECTURES.map((pref) => (
-                <option key={pref} value={pref}>{pref}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block mb-1 text-sm font-medium">市区町村:</label>
-            <input type="text" value={regionCity} onChange={(e) => setRegionCity(e.target.value)} className="w-full border border-gray-300 rounded px-3 py-2" />
-          </div>
-
-          <div>
-            <label className="block mb-1 text-sm font-medium">業種:</label>
-            <select value={industry} onChange={(e) => setIndustry(e.target.value)} className="w-full border border-gray-300 rounded px-3 py-2">
-              <option value="">業種を選択</option>
-              {effectiveIndustries.map((ind) => (
-                <option key={ind} value={ind}>{ind}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block mb-1 text-sm font-medium">メモ（任意）:</label>
-            <textarea value={memo} onChange={(e) => setMemo(e.target.value)} maxLength={500} className="w-full border border-gray-300 rounded px-3 py-2" />
-          </div>
+          <Input label="会社名" value={company} onChange={setCompany} />
+          <Input label="役職" value={position} onChange={setPosition} />
+          <Input label="お名前" value={name} onChange={setName} required />
+          <Input label="メールアドレス" value={email} disabled />
+          <Select label="都道府県" value={regionPrefecture} onChange={setRegionPrefecture} options={PREFECTURES} required />
+          <Input label="市区町村" value={regionCity} onChange={setRegionCity} />
+          <Select label="業種" value={industry} onChange={setIndustry} options={effectiveIndustries} />
+          <Textarea label="メモ（任意）" value={memo} onChange={setMemo} />
 
           <div className="space-y-3 pt-4">
             <button type="button" onClick={registerClient} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded">
               登録する
             </button>
-            {message && (
-              <p className="text-green-600 text-sm pt-1">{message}</p>
-            )}
+            {message && <p className="text-green-600 text-sm pt-1">{message}</p>}
           </div>
         </form>
 
@@ -155,6 +143,58 @@ export default function ClientUpdatePage() {
           </Link>
         </div>
       </div>
+    </div>
+  );
+}
+
+// 共通Inputコンポーネント
+function Input({ label, value, onChange, required = false, disabled = false }) {
+  return (
+    <div>
+      <label className="block mb-1 text-sm font-medium">{label}:</label>
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange?.(e.target.value)}
+        required={required}
+        disabled={disabled}
+        className={`w-full border border-gray-300 rounded px-3 py-2 ${disabled ? 'bg-gray-100 text-gray-500' : ''}`}
+      />
+    </div>
+  );
+}
+
+// 共通Selectコンポーネント
+function Select({ label, value, onChange, options, required = false }) {
+  return (
+    <div>
+      <label className="block mb-1 text-sm font-medium">{label}:</label>
+      <select
+        value={value}
+        onChange={(e) => onChange?.(e.target.value)}
+        required={required}
+        className="w-full border border-gray-300 rounded px-3 py-2"
+      >
+        <option value="">選択してください</option>
+        {options.map((opt) => (
+          <option key={opt} value={opt}>{opt}</option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+// 共通Textareaコンポーネント
+function Textarea({ label, value, onChange }) {
+  return (
+    <div>
+      <label className="block mb-1 text-sm font-medium">{label}:</label>
+      <textarea
+        value={value}
+        onChange={(e) => onChange?.(e.target.value)}
+        maxLength={500}
+        className="w-full border border-gray-300 rounded px-3 py-2"
+      />
     </div>
   );
 }

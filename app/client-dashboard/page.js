@@ -1,103 +1,61 @@
 "use client";
 
-import { doc, getDoc, updateDoc, setDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
-import { firebaseAuth, db } from "@/lib/firebase";
-import { useRouter } from "next/navigation";
-import { onAuthStateChanged } from "firebase/auth";
+import { useAuth } from "@/lib/authProvider";
+import { supabase } from "@/lib/supabaseClient";
 import Link from "next/link";
 import ClientInfoForm from "./ClientInfoForm";
 import NewsList from "./news-control/NewsList";
 
 export default function ClientDashboard() {
-  const [userData, setUserData] = useState(null);
+  const { user, loading } = useAuth();
+  const [clientData, setClientData] = useState(null);
   const [showInfoModal, setShowInfoModal] = useState(false);
-  const [user, setUser] = useState(null);
-  const [status, setStatus] = useState("");
   const [isSyncing, setIsSyncing] = useState(false);
   const [clientName, setClientName] = useState("");
-  const router = useRouter();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(firebaseAuth, async (currentUser) => {
-      if (!currentUser) {
-        router.push("/login");
-        return;
-      }
+    const loadClientData = async () => {
+      if (!user?.id) return;
 
-      setUser(currentUser);
+      try {
+        const { data, error } = await supabase
+          .from("clients")
+          .select("*")
+          .eq("uid", user.id)
+          .maybeSingle();
 
-      const clientRef = doc(db, "clients", currentUser.uid);
-      const clientSnap = await getDoc(clientRef);
+        if (error) throw error;
 
-      let clientData = null;
-
-      if (!clientSnap.exists()) {
-        await setDoc(clientRef, {
-          uid: currentUser.uid,
-          email: currentUser.email,
-          profileCompleted: false,
-          createdAt: new Date(),
-        });
-        clientData = { profileCompleted: false };
-        console.log("✅ clients に初期プロフィール作成");
-      } else {
-        clientData = clientSnap.data();
-      }
-
-      if (!clientData?.profileCompleted) {
-        setShowInfoModal(true);
-      }
-
-      const nameFromClient = clientData?.name;
-      const displayNameFromAuth = currentUser.displayName;
-      const emailName = currentUser.email?.split("@")[0];
-
-      setClientName(nameFromClient || displayNameFromAuth || emailName);
-
-      const userDocRef = doc(db, "users", currentUser.uid);
-      const userDoc = await getDoc(userDocRef);
-
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        setStatus(userData.status);
-
-        if (userData.status === "pending") {
-          await updateDoc(userDocRef, {
-            status: "active",
-            lastLogin: new Date().toISOString(),
-          });
-          setStatus("active");
-        } else {
-          await updateDoc(userDocRef, {
-            lastLogin: new Date().toISOString(),
-          });
+        if (!data || !data.profile_completed) {
+          setShowInfoModal(true);
         }
+
+        setClientData(data);
+
+        const name = data?.name || user.email?.split("@")[0];
+        setClientName(name);
+      } catch (err) {
+        console.error("❌ クライアント情報取得エラー:", err);
       }
+    };
 
-      setUserData(userData);
-    });
-
-    return () => unsubscribe();
-  }, [router]);
+    if (!loading) loadClientData();
+  }, [user, loading]);
 
   const handleModalClose = async () => {
     setShowInfoModal(false);
     setIsSyncing(true);
 
     try {
-      const res = await fetch("/api/auth/sync-client-to-supabase", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uid: user?.uid }),
-      });
+      const now = new Date().toISOString();
+      const { error } = await supabase
+        .from("users")
+        .update({ status: "active", last_login: now })
+        .eq("id", user.id);
 
-      const data = await res.json();
-      if (!res.ok) {
-        console.error("❌ Supabase 同期エラー:", data.error);
-      } else {
-        console.log("✅ Supabase にクライアント＆アカウント情報を同期しました");
-      }
+      if (error) throw error;
+      console.log("✅ Supabase にユーザーステータスを同期しました");
     } catch (err) {
       console.error("❌ Supabase 同期通信失敗:", err.message);
     } finally {
@@ -105,19 +63,23 @@ export default function ClientDashboard() {
     }
   };
 
+  if (loading) return <div className="p-6">読み込み中...</div>;
+
+  if (!user || user.role !== "client") {
+    return <div className="p-6 text-red-500">アクセス権がありません。</div>;
+  }
+
   return (
-    <div className="max-w-screen-xl mx-auto px-2 pt-20 pb-32 relative bg-gray-50 min-h-screen">
-      {/* 🧾 クライアント名で挨拶（小さく＆コンパクト） */}
-      <h1 className="text-sm text-center text-gray-500 mb-2">
+    <div className="max-w-screen-xl mx-auto px- 2 pt-12 pb-32 relative bg-[#f5faff] min-h-screen">
+      <h1 className="text-sm text-center text-emerald-800 mb-2">
         {clientName} 様の最新情報
       </h1>
 
-      {/* 🔥 ニュース記事リスト（本文が主役） */}
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+      <div className="bg-white rounded-2xl p-6 shadow-lg border border-emerald-100">
         <NewsList />
       </div>
 
-      {/* 🔽 フッター固定メニュー */}
+      {/* フッターメニュー */}
       <div className="fixed bottom-0 left-0 w-full bg-white border-t shadow z-40">
         <div className="max-w-screen-md mx-auto flex justify-around items-center py-3">
           <a
@@ -125,33 +87,31 @@ export default function ClientDashboard() {
             target="_blank"
             rel="noopener noreferrer"
           >
-            <button className="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded w-40">
+            <button className="bg-emerald-400 hover:bg-emerald-700 text-white px-5 py-2 rounded-full w-40 shadow-md">
               🤖 AI相談
             </button>
           </a>
-
           <Link href="/client-dashboard/invite">
-            <button className="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded w-40">
+            <button className="bg-emerald-400 hover:bg-emerald-600 text-white px-5 py-2 rounded-full w-40 shadow-md">
               📨 友達に紹介
             </button>
           </Link>
         </div>
       </div>
 
-      {/* ✅ モーダル */}
+      {/* プロフィール登録モーダル */}
       {showInfoModal && (
         <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center">
-          <div className="bg-white rounded-xl p-6 w-[90%] max-w-xl shadow-lg">
-            <ClientInfoForm uid={user?.uid} onClose={handleModalClose} />
+          <div className="bg-white rounded-xl p-6 w-[90%] max-w-xl shadow-2xl">
+            <ClientInfoForm onClose={handleModalClose} />
           </div>
         </div>
       )}
 
-      {/* 🔄 同期中メッセージ */}
       {isSyncing && (
         <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center">
-          <div className="bg-white rounded-xl p-6 w-[90%] max-w-xl shadow-lg text-center">
-            <p className="text-xl font-bold">🔄 クライアント情報を保存中です...</p>
+          <div className="bg-white rounded-xl p-6 w-[90%] max-w-xl shadow-2xl text-center">
+            <p className="text-xl font-bold text-emerald-600">🔄 クライアント情報を保存中です...</p>
             <p className="text-sm mt-2 text-gray-600">少々お待ちください。</p>
           </div>
         </div>

@@ -1,34 +1,56 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { db } from "@/lib/firebase";
-import { collection, onSnapshot, updateDoc, doc, deleteDoc } from "firebase/firestore";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { supabase } from "@/lib/supabaseClient"; // ✅ Supabase anon client
 
 export default function UserManagement() {
   const [users, setUsers] = useState([]);
 
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, "users"), (snapshot) => {
-      const userList = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setUsers(userList);
-    });
-
-    return () => unsubscribe();
+    fetchUsers();
   }, []);
 
+  const fetchUsers = async () => {
+    const { data, error } = await supabase
+      .from("users")
+      .select("id, email, role, referred_by");
+
+    if (error) {
+      console.error("ユーザー取得エラー:", error.message);
+    } else {
+      setUsers(data);
+    }
+  };
+
   const updateRole = async (uid, newRole) => {
-    const userRef = doc(db, "users", uid);
-    await updateDoc(userRef, { role: newRole });
+    const { error } = await supabase
+      .from("users")
+      .update({ role: newRole })
+      .eq("id", uid);
+
+    if (error) {
+      alert("ロール更新に失敗しました");
+      console.error(error);
+    } else {
+      fetchUsers();
+    }
   };
 
   const deleteUser = async (uid) => {
     const confirmDelete = window.confirm("本当にこのユーザーを削除しますか？");
     if (confirmDelete) {
-      await deleteDoc(doc(db, "users", uid));
+      const { error } = await supabase
+        .from("users")
+        .delete()
+        .eq("id", uid);
+
+      if (error) {
+        alert("削除に失敗しました");
+        console.error(error);
+      } else {
+        fetchUsers();
+      }
     }
   };
 
@@ -64,7 +86,9 @@ export default function UserManagement() {
           <tbody>
             {users.map((user) => (
               <tr key={user.id} className="border-t text-sm">
-                <td className="px-4 py-2 text-gray-600 truncate max-w-[150px]">{user.id}</td>
+                <td className="px-4 py-2 text-gray-600 truncate max-w-[150px]">
+                  {user.id}
+                </td>
                 <td className="px-4 py-2 text-gray-800">
                   {user.email
                     ? user.email.replace(/(.{3}).*?(@.*)/, "$1****")
@@ -82,7 +106,9 @@ export default function UserManagement() {
                     <option value="client">クライアント</option>
                   </select>
                 </td>
-                <td className="px-4 py-2 text-gray-700">{user.referredBy || "なし"}</td>
+                <td className="px-4 py-2 text-gray-700">
+                  {user.referred_by || "なし"}
+                </td>
                 <td className="px-4 py-2">
                   <button
                     onClick={() => deleteUser(user.id)}

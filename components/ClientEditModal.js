@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { updateClient } from "@/services/firestoreService";
+import { updateClientSB } from "@/services/supabaseService"; // ✅ Supabase用に差し替え
 import "@/styles/pages/customer.css";
 
 export default function ClientEditModal({ client, isOpen, onClose }) {
@@ -20,7 +20,7 @@ export default function ClientEditModal({ client, isOpen, onClose }) {
 
   const handleUpdate = async () => {
     try {
-      await updateClient(client.id, formData);
+      await updateClientSB(client.id, formData);
       setMessage("✅ 顧客情報が更新されました！");
       setTimeout(() => {
         setMessage("");

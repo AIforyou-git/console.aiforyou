@@ -56,6 +56,7 @@ export async function POST(req) {
 
       Aiforyou サポートチーム
       開発用：http://localhost:3000/
+      開発用：http://localhost:3000/login-sb
     `;
 
     console.log("✉️ メール本文:", mailContent);

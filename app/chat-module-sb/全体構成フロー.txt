@@ -1,0 +1,18 @@
+🧱 全体構成フロー（完成版）
+mermaid
+コピーする
+編集する
+flowchart TD
+  A[NewsList（チャット開始）] --> B[UID + articleId を取得]
+  B --> C[/chat-module-sb?uid=...&aid=...] に遷移
+  C --> D[ChatClientSB.tsx]
+  D --> E[chat_sessions 検索（uid + articleId）]
+  E -->|なし| F[新規セッション作成 + isFirstSession = true]
+  E -->|あり| G[既存セッション利用 + isFirstSession = false]
+  F --> H[chat_messages を sessionId で送信]
+  G --> H
+  H --> I[ChatHistoryList 表示]
+  F --> J[AIからの初回メッセージ演出（保存なし）]
+  F --> K[「初めてのチャットです」バナー表示]
+  G --> L[「前回のチャットの続きです」バナー表示]
+

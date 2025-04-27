@@ -11,7 +11,7 @@ export default function Info() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* 補助金情報 */}
         <Link
-          href="/admin-dashboard/news-control"
+          href="/preparing"
           className="flex flex-col items-start bg-white shadow-md p-5 rounded-xl hover:bg-gray-50 transition"
         >
           <div className="text-blue-600 mb-2">

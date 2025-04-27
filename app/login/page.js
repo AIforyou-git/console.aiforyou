@@ -1,65 +1,98 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { firebaseAuth, db } from "@/lib/firebase";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
-import { useAuth } from "@/lib/authProvider";
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabaseClient';
 
-export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [errorMessage, setErrorMessage] = useState("");
+export default function LoginSBPage() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
   const router = useRouter();
-  const { user, loading } = useAuth();
-
-  // ✅ ログイン済みユーザーは自動でリダイレクト
-  useEffect(() => {
-    if (!loading && user && user.role) {
-      const roleRedirects = {
-        client: "/client-dashboard",
-        agency: "/agency-dashboard",
-        user: "/user-dashboard",
-        admin: "/admin-dashboard",
-        manager: "/manager-dashboard",
-      };
-      router.push(roleRedirects[user.role] || "/dashboard");
-    }
-  }, [user, loading, router]);
 
   const handleLogin = async () => {
-    try {
-      const userCredential = await signInWithEmailAndPassword(firebaseAuth, email, password);
-      const user = userCredential.user;
+    setErrorMessage('');
+    setIsLoggingIn(true);
 
-      const userDoc = await getDoc(doc(db, "users", user.uid));
-      const userData = userDoc.data();
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-      if (!userData || !userData.role) {
-        setErrorMessage("❌ ユーザー情報が見つかりません。");
-        return;
-      }
-
-      const roleRedirects = {
-        client: "/client-dashboard",
-        agency: "/agency-dashboard",
-        user: "/user-dashboard",
-        admin: "/admin-dashboard",
-        manager: "/manager-dashboard",
-      };
-
-      router.push(roleRedirects[userData.role] || "/dashboard");
-    } catch (error) {
-      console.error(error);
-      setErrorMessage("❌ ログインに失敗しました。メールアドレスまたはパスワードを確認してください。");
+    if (error) {
+      console.error('ログイン失敗:', error.message);
+      setErrorMessage('❌ ログインに失敗しました。メールアドレスまたはパスワードを確認してください。');
+      setIsLoggingIn(false);
+      return;
     }
-  };
 
-  // ✅ 認証状態が未確定な間は何も描画しない（チラつき回避）
-  if (loading) {
-    return <div className="min-h-screen bg-white" />;
-  }
+    const session = data.session;
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      setErrorMessage('❌ ユーザーIDの取得に失敗しました。');
+      setIsLoggingIn(false);
+      return;
+    }
+
+    // 🔍 ユーザー情報の取得（usersテーブル）
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('role, status')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (userError || !userData) {
+      console.error('ユーザーデータ取得失敗:', userError);
+      setErrorMessage('❌ ユーザー情報の取得に失敗しました。');
+      setIsLoggingIn(false);
+      return;
+    }
+
+    // ✅ アクティブ化処理（pending → active）
+    if (userData.status === 'pending' && userData.role !== 'admin') {
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ status: 'active' })
+        .eq('id', userId);
+
+      if (updateError) {
+        console.warn('ステータス更新失敗:', updateError.message);
+      }
+    }
+
+    // 🆕 ログイン履歴記録 (login_logs)
+    const now = new Date().toISOString();
+    const deviceInfo = typeof navigator !== 'undefined' ? navigator.userAgent : null;
+
+    const { error: loginLogError } = await supabase
+      .from('login_logs')
+      .insert([
+        {
+          uid: userId,
+          login_time: now,
+          ip_address: null, // IP取得難しいのでここはnullにしておく（将来拡張可）
+          device_info: deviceInfo,
+        },
+      ]);
+
+    if (loginLogError) {
+      console.warn('ログイン履歴保存失敗:', loginLogError.message);
+    }
+
+    // 🎯 ロールによるリダイレクト
+    const roleRedirects = {
+      client: '/client-dashboard',
+      agency: '/agency-dashboard',
+      user: '/user-dashboard',
+      admin: '/admin-dashboard',
+    };
+
+    const redirectTo = roleRedirects[userData.role] || '/dashboard';
+    router.replace(redirectTo);
+  };
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100 px-4">
@@ -77,6 +110,8 @@ export default function LoginPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            disabled={isLoggingIn}
+            required
           />
           <input
             type="password"
@@ -84,18 +119,21 @@ export default function LoginPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            disabled={isLoggingIn}
+            required
           />
         </div>
 
         <button
-          className="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded"
           onClick={handleLogin}
+          disabled={isLoggingIn}
+          className="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded flex items-center justify-center gap-2 disabled:opacity-50"
         >
-          メールアドレスでログイン
+          {isLoggingIn ? 'ログイン中...' : 'ログイン'}
         </button>
 
         <p className="mt-4 text-sm">
-          <a href="/login/recover" className="text-blue-600 hover:underline">
+          <a href="/login-sb/recover" className="text-blue-600 hover:underline">
             パスワードを忘れた方はこちら
           </a>
         </p>
