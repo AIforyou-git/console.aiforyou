@@ -1,13 +1,17 @@
-// ✅ register-user-sb/route.js
 import { supabaseAdmin } from "../../../../lib/supabaseAdmin";
 
 function generateShortReferralCode() {
-  const prefix = "USER-";
+  const prefix = "CQ-USER-";
   const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
   const code = Array.from({ length: 6 }, () =>
     chars[Math.floor(Math.random() * chars.length)]
   ).join("");
   return prefix + code;
+}
+
+function maskEmail(email) {
+  const [user, domain] = email.split("@");
+  return user.slice(0, 2) + "***@" + domain;
 }
 
 export async function POST(req) {
@@ -25,8 +29,8 @@ export async function POST(req) {
       .eq("valid", true)
       .maybeSingle();
 
-    if (referralError || !referral || referral.target_role !== "user") {
-      return new Response(JSON.stringify({ error: "紹介コードが無効か、対象が一致しません" }), { status: 400 });
+    if (referralError || !referral) {
+      return new Response(JSON.stringify({ error: "紹介コードが無効です" }), { status: 400 });
     }
 
     if (referral.expires_at && new Date(referral.expires_at) <= new Date()) {
@@ -63,15 +67,25 @@ export async function POST(req) {
       throw new Error("ユーザーデータ保存に失敗しました");
     }
 
+    await supabaseAdmin.from("referral_relations").insert({
+      referrer_id: referral.referrer_id,
+      referred_id: uid,
+      source: `ref=${referralCode}`,
+      referred_email_masked: maskEmail(email),
+      referred_name: null,
+      referred_status: "pending",
+    });
+
     await supabaseAdmin.from("referral").insert({
       code: referralCodeSelf,
       referrer_id: uid,
-      target_role: "user",
+      target_role: "client", // ここは「client」をターゲットにしている（自己紹介はclientになる想定）
       valid: true,
       created_at: new Date().toISOString(),
     });
 
     return new Response(JSON.stringify({ success: true, tempPassword }), { status: 200 });
+
   } catch (err) {
     console.error("[REGISTER-USER-SB] エラー:", err);
     return new Response(JSON.stringify({ error: err.message }), { status: 500 });

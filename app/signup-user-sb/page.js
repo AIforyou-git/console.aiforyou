@@ -1,4 +1,4 @@
-// ✅ page.js for signup-user-sb
+// ✅ page.js (signup-user-sb)
 import SignupUserPageClient from "./SignupUserPageClient";
 
 export const dynamic = "force-dynamic";

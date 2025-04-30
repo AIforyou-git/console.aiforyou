@@ -51,6 +51,9 @@ function LayoutContent({ children }) {
 export default function RootLayout({ children }) {
   return (
     <html lang="ja">
+      <head>
+        <link rel="icon" href="/favicon.ico" />
+      </head>
       <body className="text-gray-800 bg-gray-50 min-h-screen">
         <ToastProvider>
           <AuthProvider> {/* ✅ Supabase context を全体に適用 */}

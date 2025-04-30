@@ -1,8 +1,14 @@
 import { supabaseAdmin } from "../../../../lib/supabaseAdmin";
 
-// 🔧 紹介コード（短縮形式）生成関数
-function generateShortReferralCode() {
-  const prefix = "CLNT-";
+const prefixMap = {
+  client: "HQ-CLNT-",
+  user: "HQ-USER-",
+  agency: "HQ-AGE-",
+  admin: "HQ-ADMIN-",
+};
+
+function generateShortReferralCode(role = "client") {
+  const prefix = prefixMap[role] || "HQ-CLNT-";
   const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
   const code = Array.from({ length: 6 }, () =>
     chars[Math.floor(Math.random() * chars.length)]
@@ -10,18 +16,33 @@ function generateShortReferralCode() {
   return prefix + code;
 }
 
+function maskEmail(email) {
+  const [user, domain] = email.split("@");
+  return user.slice(0, 2) + "***@" + domain;
+}
+
 export async function POST(req) {
   try {
-    const { email, referralCode } = await req.json();
-
-    if (!email || !referralCode) {
-      return new Response(JSON.stringify({ error: "メールアドレスと紹介コードは必須です" }), { status: 400 });
+    const token = req.headers.get("Authorization")?.replace("Bearer ", "");
+    if (!token) {
+      return new Response(JSON.stringify({ error: "認証トークンがありません" }), { status: 401 });
     }
 
-    console.log("📩 email:", email);
-    console.log("🔗 referralCode:", referralCode);
+    const { data: { user: authUser }, error: sessionError } = await supabaseAdmin.auth.getUser(token);
+    if (sessionError || !authUser) {
+      return new Response(JSON.stringify({ error: "認証エラーが発生しました" }), { status: 401 });
+    }
 
-    // 🔍 紹介コードのチェック
+    const { email, referralCode, targetRole } = await req.json();
+
+    if (!email || !referralCode || !targetRole) {
+      return new Response(JSON.stringify({ error: "全項目必須です" }), { status: 400 });
+    }
+
+    if (!["admin", "agency", "user", "client"].includes(targetRole)) {
+      return new Response(JSON.stringify({ error: "無効なロールです" }), { status: 400 });
+    }
+
     const { data: referral, error: referralError } = await supabaseAdmin
       .from("referral")
       .select("*")
@@ -29,21 +50,16 @@ export async function POST(req) {
       .eq("valid", true)
       .maybeSingle();
 
-    console.log("📦 referral:", referral);
-
     if (referralError || !referral) {
       return new Response(JSON.stringify({ error: "紹介コードが無効です" }), { status: 400 });
     }
 
-    // ⏳ 有効期限のチェック（あれば）
     if (referral.expires_at && new Date(referral.expires_at) <= new Date()) {
       return new Response(JSON.stringify({ error: "紹介コードの有効期限が切れています" }), { status: 400 });
     }
 
-    const targetRole = referral.target_role || "user";
     const tempPassword = Math.random().toString(36).slice(-8);
 
-    // 🔐 Supabase Auth 登録
     const { data: user, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password: tempPassword,
@@ -51,54 +67,70 @@ export async function POST(req) {
     });
 
     if (authError || !user) {
-      console.error("Auth Error:", authError);
       throw new Error("Auth登録に失敗しました");
     }
 
     const uid = user.user.id;
+    const referralCodeSelf = generateShortReferralCode(targetRole);
+    const invitePage = {
+      client: "signup-client-sb",
+      user: "signup-user-sb",
+      agency: "signup-agency-sb",
+      admin: "signup-admin-sb",
+    }[targetRole] || "signup-client-sb";
+    const inviteUrl = `https://console.aiforyou.jp/${invitePage}?ref=${referralCodeSelf}`;
 
-    // ✅ 自分の紹介コード（短縮形式）を生成
-    const referralCodeSelf = generateShortReferralCode();
-    const inviteUrl = `https://console.aiforyou.jp/signup-client-sb?ref=${referralCodeSelf}`;
+    const status = "pending";
 
-    // 🗃️ users テーブルへ登録
     const { error: dbError } = await supabaseAdmin.from("users").insert({
       id: uid,
       email,
       role: targetRole,
       referred_by: referralCode,
-      status: "pending",
+      status,
       created_at: new Date().toISOString(),
       client_invite_url: inviteUrl,
     });
 
     if (dbError) {
-      console.error("DB Error:", dbError);
-      throw new Error("ユーザーデータ保存に失敗しました");
+      console.error("🔥 Supabase Insertエラー:", dbError);
+      throw new Error("ユーザー情報の保存に失敗しました");
     }
 
-    // ✅ referral テーブルにも紹介者として登録（1回だけ）
     await supabaseAdmin.from("referral").insert({
       code: referralCodeSelf,
       referrer_id: uid,
-      target_role: "client",
+      referrer_email: email,
+      target_role: targetRole,
       valid: true,
       created_at: new Date().toISOString(),
     });
 
-    // 📧 メール送信API 呼び出し（nodemailer）
+    await supabaseAdmin.from("referral_relations").insert({
+      referrer_id: referral.referrer_id,
+      referred_id: uid,
+      source: `ref=${referral.code}`,
+      referred_email_masked: maskEmail(email),
+      referred_name: null,
+      referred_status: status,
+      created_at: new Date().toISOString(),
+    });
+
+    // ✅ ここで referral_relations の referred_status を users.status に同期
+    await supabaseAdmin
+      .from("referral_relations")
+      .update({ referred_status: status })
+      .eq("referred_id", uid);
+
     await fetch(`${process.env.API_BASE_URL}/api/auth/send-email`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email,
-        tempPassword,
-      }),
+      body: JSON.stringify({ email, tempPassword }),
     });
 
     return new Response(JSON.stringify({ success: true, uid }), { status: 200 });
   } catch (err) {
-    console.error("Fatal Error:", err);
+    console.error("[REGISTER-SB] Fatal Error:", err);
     return new Response(JSON.stringify({ error: err.message }), { status: 500 });
   }
 }

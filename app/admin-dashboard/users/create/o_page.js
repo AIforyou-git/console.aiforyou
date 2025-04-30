@@ -1,43 +1,14 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from '@/lib/supabaseClient'; // ✅ supabaseClientをインポート
 
 export default function CreateUserAdmin() {
   const [email, setEmail] = useState('');
   const [referralCode, setReferralCode] = useState('');
-  const [targetRole, setTargetRole] = useState('client');
-  const [referralCodes, setReferralCodes] = useState([]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const router = useRouter();
-
-  // 🔄 自分の紹介コード一覧を取得
-  useEffect(() => {
-    const fetchReferralCodes = async () => {
-      const session = (await supabase.auth.getSession()).data.session;
-      if (!session) return;
-
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from('referral')
-        .select('code, target_role')
-        .eq('referrer_id', user.id)
-        .eq('valid', true);
-
-      if (!error && data?.length > 0) {
-        setReferralCodes(data);
-      } else {
-        console.error('紹介コードの取得に失敗:', error?.message);
-      }
-    };
-
-    fetchReferralCodes();
-  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -45,7 +16,9 @@ export default function CreateUserAdmin() {
     setSuccess('');
 
     try {
+      // 🔐 セッションからアクセストークン取得
       const session = (await supabase.auth.getSession()).data.session;
+
       if (!session) {
         setError('認証エラー：再ログインしてください。');
         return;
@@ -57,13 +30,9 @@ export default function CreateUserAdmin() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+          'Authorization': `Bearer ${token}`, // ✅ トークンを付与！
         },
-        body: JSON.stringify({
-          email,
-          referralCode,
-          targetRole,
-        }),
+        body: JSON.stringify({ email, referralCode }),
       });
 
       const data = await res.json();
@@ -74,20 +43,19 @@ export default function CreateUserAdmin() {
         setSuccess('✅ 登録に成功しました！');
         setEmail('');
         setReferralCode('');
-        setTargetRole('client');
         setTimeout(() => {
           router.push('/admin-dashboard/users');
         }, 1000);
       }
     } catch (err) {
-      console.error('登録中にエラー:', err);
+      console.error('Fatal Error:', err);
       setError('登録処理中にエラーが発生しました。');
     }
   };
 
   return (
     <div className="max-w-md mx-auto mt-20 p-6 bg-white rounded shadow">
-      <h1 className="text-xl font-bold mb-4">新規ユーザー登録（管理画面※間違ってこっち使わないようにして）</h1>
+      <h1 className="text-xl font-bold mb-4">新規ユーザー登録（管理画面）</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         <input
           type="email"
@@ -99,30 +67,16 @@ export default function CreateUserAdmin() {
         />
 
         <select
-          value={targetRole}
-          onChange={(e) => setTargetRole(e.target.value)}
-          className="w-full border p-2 rounded"
-          required
-        >
-          <option value="">登録するロールを選択</option>
-          <option value="admin">管理者用</option>
-          <option value="agency">代理店用</option>
-          <option value="user">ユーザー用</option>
-          <option value="client">クライアント用</option>
-        </select>
-
-        <select
           value={referralCode}
           onChange={(e) => setReferralCode(e.target.value)}
           className="w-full border p-2 rounded"
           required
         >
-          <option value="">紹介コードを指定</option>
-          {referralCodes.map((code) => (
-            <option key={code.code} value={code.code}>
-              {code.code}（{code.target_role}{code.code.startsWith('HQ') ? ' / 自分' : ''}）
-            </option>
-          ))}
+          <option value="">紹介コードを選択</option>
+          <option value="HQ-ADMIN">管理者用</option>
+          <option value="HQ-AGENCY">代理店用</option>
+          <option value="HQ-USER">ユーザー用</option>
+          <option value="HQ-CLIENT">クライアント用</option>
         </select>
 
         <button

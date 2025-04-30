@@ -40,7 +40,7 @@ export default function LoginSBPage() {
     // 🔍 ユーザー情報の取得（usersテーブル）
     const { data: userData, error: userError } = await supabase
       .from('users')
-      .select('role, status')
+      .select('role, status, email')
       .eq('id', userId)
       .maybeSingle();
 
@@ -52,7 +52,7 @@ export default function LoginSBPage() {
     }
 
     // ✅ アクティブ化処理（pending → active）
-    if (userData.status === 'pending' && userData.role !== 'admin') {
+    if (userData.status === 'pending') {
       const { error: updateError } = await supabase
         .from('users')
         .update({ status: 'active' })
@@ -61,6 +61,30 @@ export default function LoginSBPage() {
       if (updateError) {
         console.warn('ステータス更新失敗:', updateError.message);
       }
+
+      // 🔁 referral_relations 同期
+      const { error: syncRelError } = await supabase
+        .from('referral_relations')
+        .update({ referred_status: 'active' })
+        .eq('referred_id', userId);
+
+      if (syncRelError) {
+        console.warn('referral_relations 同期失敗:', syncRelError.message);
+      }
+    }
+
+    // 🔁 referral（紹介コード持ち主としてのメール同期）
+    try {
+      const { error: referralUpdateError } = await supabase
+        .from('referral')
+        .update({ referrer_email: userData.email })
+        .eq('referrer_id', userId);
+
+      if (referralUpdateError) {
+        console.warn('referral.referrer_email の同期失敗:', referralUpdateError.message);
+      }
+    } catch (e) {
+      console.error('紹介コード同期エラー:', e.message);
     }
 
     // 🆕 ログイン履歴記録 (login_logs)
@@ -73,7 +97,7 @@ export default function LoginSBPage() {
         {
           uid: userId,
           login_time: now,
-          ip_address: null, // IP取得難しいのでここはnullにしておく（将来拡張可）
+          ip_address: null,
           device_info: deviceInfo,
         },
       ]);
@@ -133,7 +157,7 @@ export default function LoginSBPage() {
         </button>
 
         <p className="mt-4 text-sm">
-          <a href="/login-sb/recover" className="text-blue-600 hover:underline">
+          <a href="/login/recover" className="text-blue-600 hover:underline">
             パスワードを忘れた方はこちら
           </a>
         </p>

@@ -101,7 +101,22 @@ export default function SignupClientPageClient() {
         >
           ✅ 登録する
         </button>
-        <p className="text-sm text-red-500">{message}</p>
+
+        {/* ✅ 改行 + リンク表示対応 */}
+        <div className="text-sm text-red-500 space-y-1">
+          {message.split("\n").map((line, idx) => {
+            if (line.includes("http")) {
+              return (
+                <p key={idx}>
+                  <a href={line.trim()} target="_blank" className="text-blue-600 underline">
+                    パスワード再設定はこちら
+                  </a>
+                </p>
+              );
+            }
+            return <p key={idx}>{line}</p>;
+          })}
+        </div>
       </div>
     </div>
   );

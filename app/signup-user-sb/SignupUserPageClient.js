@@ -1,4 +1,4 @@
-// ✅ SignupUserPageClient.js
+// ✅ SignupUserPageClient.js (signup-user-sb)
 "use client";
 import { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -26,7 +26,7 @@ export default function SignupUserPageClient() {
         const res = await fetch(`/api/auth/check-referral-sb?ref=${refCode}`);
         const data = await res.json();
 
-        if (!res.ok || !data.valid || data.target_role !== "user") {
+        if (!res.ok || !data.valid) {
           router.replace("/error-page?msg=invalid_ref");
         } else {
           setLoading(false);
@@ -76,27 +76,28 @@ export default function SignupUserPageClient() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-r from-green-100 to-green-300">
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-100 to-blue-300">
         🔄 認証中...
       </div>
     );
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-r from-green-100 to-green-300 px-4">
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-100 to-blue-300 px-4">
       <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md text-center space-y-4">
-        <h1 className="text-2xl font-bold text-gray-800">📝 AIforyou USER登録</h1>
+        <h1 className="text-2xl font-bold text-gray-800">📝 AIforyouへようこそ！！</h1>
         <p className="text-gray-600 text-sm">紹介リンクから登録を完了してください</p>
+        <p className="text-xs text-gray-400 italic">※こちらは会員様限定のサービスです</p>
         <input
           type="email"
           placeholder="メールアドレス"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+          className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <button
           onClick={handleSignup}
-          className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition"
+          className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
         >
           ✅ 登録する
         </button>
