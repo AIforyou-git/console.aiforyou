@@ -9,14 +9,13 @@ import HeaderAdmin from "@/components/HeaderAdmin";
 import HeaderUser from "@/components/HeaderUser";
 import HeaderClient from "@/components/HeaderClient";
 import HeaderAgency from "@/components/HeaderAgency";
-
+import FooterPublic from "@/components/Footer/FooterPublic"; 
 import "../styles/globals.css";
 
 function LayoutContent({ children }) {
   const pathname = usePathname();
   const { loading } = useAuth(); // ✅ 認証状態の取得
 
-  // ✅ loading 中は画面を白にして描画抑制（ちらつき・null崩壊防止）
   if (loading) {
     return <div className="w-screen h-screen bg-white" />;
   }
@@ -27,7 +26,7 @@ function LayoutContent({ children }) {
   );
 
   if (pathname === "/preparing" || isSuppressed) {
-    return <main className="pt-8 px-6">{children}</main>;
+    return <main className="flex-1 pt-8 px-6">{children}</main>;
   }
 
   let HeaderComponent = null;
@@ -44,10 +43,10 @@ function LayoutContent({ children }) {
   return (
     <>
       {HeaderComponent && <HeaderComponent />}
-      <main className="pt-8 px-6">{children}</main>
+      <main className="flex-1 pt-8 px-6">{children}</main>
+      
     </>
   );
-  
 }
 
 export default function RootLayout({ children }) {
@@ -56,9 +55,9 @@ export default function RootLayout({ children }) {
       <head>
         <link rel="icon" href="/favicon.ico" />
       </head>
-      <body className="text-gray-800 bg-gray-50 min-h-screen">
+      <body className="flex flex-col min-h-screen text-gray-800 bg-gray-50">
         <ToastProvider>
-          <AuthProvider> {/* ✅ Supabase context を全体に適用 */}
+          <AuthProvider>
             <LayoutContent>{children}</LayoutContent>
           </AuthProvider>
         </ToastProvider>

@@ -31,7 +31,7 @@ export default function Settings() {
   ];
 
   return (
-    <div className="min-h-screen px-4 py-10 bg-gray-50 flex flex-col justify-between">
+    <div className="min-h-screen px-4 py-10 bg-gray-50">
       <div className="max-w-6xl mx-auto">
         <h1 className="text-2xl font-bold text-center text-gray-800 mb-10">設定</h1>
 
@@ -48,14 +48,6 @@ export default function Settings() {
             </Link>
           ))}
         </div>
-      </div>
-
-      {/* 下部リンクナビゲーション（ログインページと統一） */}
-      <div className="mt-12 border-t border-gray-200 pt-6 text-center text-sm text-gray-500 space-x-4">
-      <a href="/legal/privacy">プライバシーポリシー</a>
-<a href="/legal/service">サービス概要</a>
-<a href="/legal/terms">利用規約</a>
-<a href="/legal/tokusho">特商法表記</a>
       </div>
     </div>
   );

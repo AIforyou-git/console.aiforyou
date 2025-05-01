@@ -83,43 +83,45 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">管理者ダッシュボード</h1>
+    <div className="flex flex-col min-h-screen">
+      <div className="p-6 max-w-4xl mx-auto flex-1">
+        <h1 className="text-2xl font-bold mb-4">管理者ダッシュボード</h1>
 
-      <div className="bg-white rounded-lg shadow p-4 mb-6">
-        <p className="text-sm text-gray-600">
-          <span className="font-semibold">ログイン中:</span> {user.email}
-        </p>
-        <p className="text-sm text-gray-600">
-          <span className="font-semibold">ステータス:</span> {status}
-        </p>
+        <div className="bg-white rounded-lg shadow p-4 mb-6">
+          <p className="text-sm text-gray-600">
+            <span className="font-semibold">ログイン中:</span> {user.email}
+          </p>
+          <p className="text-sm text-gray-600">
+            <span className="font-semibold">ステータス:</span> {status}
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Link href="/admin-dashboard/users">
+            <Button variant="secondary" className="w-full">
+              👥 ユーザー管理
+            </Button>
+          </Link>
+
+          <Link href="/admin-dashboard/invite">
+            <Button variant="secondary" className="w-full">
+              🔗 紹介URLの送信
+            </Button>
+          </Link>
+
+          <Link href="/admin-dashboard/account">
+            <Button variant="secondary" className="w-full">
+              ⚙️ アカウント設定
+            </Button>
+          </Link>
+
+          <Button onClick={handleLogout} variant="destructive" className="w-full">
+            🚪 ログアウト
+          </Button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Link href="/admin-dashboard/users">
-          <Button variant="secondary" className="w-full">
-            👥 ユーザー管理
-          </Button>
-        </Link>
-
-        <Link href="/admin-dashboard/invite">
-          <Button variant="secondary" className="w-full">
-            🔗 紹介URLの送信
-          </Button>
-        </Link>
-
-        <Link href="/admin-dashboard/account">
-          <Button variant="secondary" className="w-full">
-            ⚙️ アカウント設定
-          </Button>
-        </Link>
-
-        <Button onClick={handleLogout} variant="destructive" className="w-full">
-          🚪 ログアウト
-        </Button>
-      </div>
+      <FooterAdminDashboard />
     </div>
-    
   );
-  
 }
