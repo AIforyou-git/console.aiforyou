@@ -3,7 +3,8 @@
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import Button from "@/components/ui/Button"; // ✅ default import に修正（構文エラー解消）
+
+import Button from "@/components/ui/Button";
 
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState("");
