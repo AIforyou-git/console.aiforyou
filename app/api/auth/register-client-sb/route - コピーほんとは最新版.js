@@ -37,19 +37,49 @@ export async function POST(req) {
       return new Response(JSON.stringify({ error: "紹介コードの有効期限が切れています" }), { status: 400 });
     }
 
-    const tempPassword = Math.random().toString(36).slice(-8);
+    // ✅ 既に Auth に存在しているか確認（リカバリ対応）
+    const { data: existingAuth } = await supabaseAdmin.auth.admin.listUsers({ email });
+    let uid = null;
+    let isNewUser = true;
 
-    const { data: user, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password: tempPassword,
-      email_confirm: true,
-    });
+    if (existingAuth?.users?.length) {
+      const user = existingAuth.users[0];
+      uid = user.id;
 
-    if (authError || !user) {
-      throw new Error("Auth登録に失敗しました");
+      // ✅ users テーブルに存在するかチェック
+      const { data: userRow } = await supabaseAdmin
+        .from("users")
+        .select("id")
+        .eq("id", uid)
+        .maybeSingle();
+
+        
+        if (userRow) {
+          return new Response(JSON.stringify({
+            error: "このメールアドレスはすでに登録されています。\nhttps://console.aiforyou.jp/login"
+          }), { status: 400 });
+        }
+
+      isNewUser = false; // Auth に存在 → 再登録扱い
     }
 
-    const uid = user.user.id;
+    // ✅ Auth にユーザーがいない場合 → 新規作成
+    if (isNewUser) {
+      const tempPassword = Math.random().toString(36).slice(-8);
+
+      const { data: user, error: authError } = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password: tempPassword,
+        email_confirm: true,
+      });
+
+      if (authError || !user) {
+        throw new Error("Auth登録に失敗しました");
+      }
+
+      uid = user.user.id;
+    }
+
     const referralCodeSelf = generateShortReferralCode();
     const inviteUrl = `https://console.aiforyou.jp/signup-client-sb?ref=${referralCodeSelf}`;
 
@@ -69,7 +99,7 @@ export async function POST(req) {
 
     // ✅ 紹介者のメールアドレスを後から反映（安定構成）
     try {
-      const { data: referrerUser, error: referrerError } = await supabaseAdmin
+      const { data: referrerUser } = await supabaseAdmin
         .from("users")
         .select("email")
         .eq("id", referral.referrer_id)
@@ -99,13 +129,14 @@ export async function POST(req) {
     await supabaseAdmin.from("referral").insert({
       code: referralCodeSelf,
       referrer_id: uid,
-      referrer_email: email, // ← ここで登録者自身のメールを入れる
+      referrer_email: email,
       target_role: "client",
       valid: true,
       created_at: new Date().toISOString(),
     });
 
-    return new Response(JSON.stringify({ success: true, tempPassword }), { status: 200 });
+    return new Response(JSON.stringify({ success: true, uid }), { status: 200 });
+
   } catch (err) {
     console.error("[REGISTER-CLIENT-SB] エラー:", err);
     return new Response(JSON.stringify({ error: err.message }), { status: 500 });

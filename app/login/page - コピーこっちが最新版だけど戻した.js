@@ -157,7 +157,7 @@ export default function LoginSBPage() {
         </button>
 
         <p className="mt-4 text-sm">
-          <a href="/login-sb/recover" className="text-blue-600 hover:underline">
+          <a href="/login/recover" className="text-blue-600 hover:underline">
             パスワードを忘れた方はこちら
           </a>
         </p>
