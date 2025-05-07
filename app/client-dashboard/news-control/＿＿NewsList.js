@@ -1,11 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import scrapingClient from '@/lib/supabaseScrapingClient'; // ✅ 共通クライアントを使用
-import Link from "next/link";
+import scrapingClient from '@/lib/supabaseScrapingClient';
 import { supabase } from "@/lib/supabaseClient";
-
-
 
 const keywordOptions = ["補助金", "災害", "設備投資", "人材育成"];
 const areaOptions = ["全国", "北海道", "東京", "大阪", "福岡"];
@@ -14,7 +11,7 @@ const sortOptions = [
   { label: "タイトル（昇順）", value: "structured_title" },
 ];
 
-export default function NewsControlPage() {
+export default function NewsListClient() {
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
@@ -33,19 +30,19 @@ export default function NewsControlPage() {
 
       let query = scrapingClient
         .from("jnet_articles_public")
-        .select(
-          `
+        .select(`
           article_id,
           structured_title,
+          title,
           structured_agency,
+          agency,
           structured_prefecture,
+          region_large,
           structured_application_period,
           structured_summary_extract,
           structured_amount_max,
           detail_url
-        `
-        )
-        //.eq("structured_success", true);//不要なので削除
+        `);
 
       if (keyword) {
         query = query.or(
@@ -77,7 +74,7 @@ export default function NewsControlPage() {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">📢 配信候補記事一覧</h1>
+      <h1 className="text-2xl font-bold mb-4">📰 支援制度 一覧（安定表示＋未定非表示）</h1>
 
       <div className="flex flex-col md:flex-row md:items-center gap-4 mb-4">
         <input
@@ -145,19 +142,23 @@ export default function NewsControlPage() {
       ) : (
         <>
           <div className="space-y-4">
-            {articles.map((article) => (
-              <div
-                key={article.article_id}
-                className="p-4 border rounded-lg shadow-sm bg-white"
-              >
-                <div className="flex justify-between items-start">
+            {articles
+              .filter(
+                (article) =>
+                  article.structured_title?.trim() || article.title?.trim()
+              )
+              .map((article) => (
+                <div
+                  key={article.article_id}
+                  className="p-4 border rounded-lg shadow-sm bg-white min-h-[180px] flex flex-col justify-between"
+                >
                   <div>
                     <h2 className="text-lg font-semibold">
-                      {article.structured_title || "（タイトル未定）"}
+                      {article.structured_title?.trim() || article.title?.trim()}
                     </h2>
                     <p className="text-sm text-gray-500">
-                      {article.structured_agency || "機関不明"} /{" "}
-                      {article.structured_prefecture || ""} /{" "}
+                      {article.structured_agency || article.agency || "機関不明"} /{" "}
+                      {article.structured_prefecture || article.region_large || ""} /{" "}
                       {article.structured_application_period?.start || "未定"}
                     </p>
                     {article.structured_summary_extract && (
@@ -178,33 +179,27 @@ export default function NewsControlPage() {
                     >
                       記事を見る
                     </a>
-                    
-                    
-                    <div className="mt-2">
-  <button
-    onClick={async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        alert("ログインが必要です。");
-        return;
-      }
-      const uid = user.id;
-      window.location.href = `/chat-module-sb?aid=${article.article_id}&uid=${uid}`;
-    }}
-    className="text-sm bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1 rounded flex items-center"
-  >
-    💬 申請サポート
-  </button>
-</div>
-
                   </div>
-                  
+
+                  <div className="mt-3">
+                    <button
+                      onClick={async () => {
+                        const { data: { user } } = await supabase.auth.getUser();
+                        if (!user) {
+                          alert("ログインが必要です。");
+                          return;
+                        }
+                        const uid = user.id;
+                        window.location.href = `/chat-module-sb?aid=${article.article_id}&uid=${uid}`;
+                      }}
+                      className="text-sm bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1 rounded flex items-center"
+                    >
+                      💬 申請サポート
+                    </button>
+                  </div>
                 </div>
-                
-              </div>
-            ))}
+              ))}
           </div>
-          
 
           <div className="flex justify-between mt-6">
             <button

@@ -1,14 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import ChatInput from "./components/ChatInput";
 import ChatMessage from "./components/ChatMessage";
 import { useChatSB } from "./hooks/useChatSB";
 import ChatHistoryList from "./components/ChatHistoryList";
-import { supabase } from "@/lib/supabaseClient"; // ✅ 共通クライアントに統一
-import scrapingClient from "@/lib/supabaseScrapingClient"; // ✅ 既存の構成と同じ
-import { Message } from "./types/chat"; // ✅ Message 型インポート
+import { supabase } from "@/lib/supabaseClient"; // ✅ 共通クライアント
+import scrapingSupabase from "@/lib/scrapingSupabaseClient"; // 記事取得用（別URLの場合）
 
 interface Props {
   articleId?: string | null;
@@ -18,18 +17,34 @@ export default function ChatClientSB({ articleId }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const uid = searchParams.get("uid");
-  const { input, handleInputChange, handleSend, messages } = useChatSB(articleId); // ✅ ここで messages を取得
+  
+  const { input, handleInputChange, handleSend: originalSend } = useChatSB(articleId);
+
+  const handleSend = async () => {
+    await originalSend(); // まず送信
+    if (reloadMessagesRef.current) {
+      await reloadMessagesRef.current(); // ✅ メッセージを再取得
+    }
+  };
+
 
   const [clientName, setClientName] = useState<string | null>(null);
   const [articleTitle, setArticleTitle] = useState<string | null>(null);
   const [isFirstSession, setIsFirstSession] = useState(false);
   const [showIntroMessage, setShowIntroMessage] = useState(true);
+  const reloadMessagesRef = useRef<() => void>(null);
+
 
   useEffect(() => {
+    
+
+   
+   
+
     const fetchInfo = async () => {
       if (!articleId) return;
 
-      const { data: article, error: articleError } = await scrapingClient
+      const { data: article, error: articleError } = await scrapingSupabase
         .from("jnet_articles_public")
         .select("title, structured_title")
         .eq("article_id", articleId)
@@ -40,9 +55,9 @@ export default function ChatClientSB({ articleId }: Props) {
       }
 
       if (article?.structured_title) {
-        setArticleTitle(article.structured_title);
+        setArticleTitle(article.structured_title); // ✅ structured_title を使用
       } else if (article?.title) {
-        setArticleTitle(article.title);
+        setArticleTitle(article.title); // fallback
       }
 
       const { data: sessions, error: sessionError } = await supabase
@@ -78,6 +93,11 @@ export default function ChatClientSB({ articleId }: Props) {
   useEffect(() => {
     const checkSession = async () => {
       if (!articleId || !uid) return;
+
+      //const supabase = createClient(
+       // process.env.NEXT_PUBLIC_SUPABASE_URL!,
+       // process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      //);
 
       const { data: session } = await supabase
         .from("chat_sessions")
@@ -119,12 +139,14 @@ export default function ChatClientSB({ articleId }: Props) {
         </div>
       )}
 
-      {/* ✅ messages を渡す */}
       <ChatHistoryList
-        messages={messages}
+        articleId={articleId ?? undefined}
+        uid={uid ?? undefined}
         isFirstSession={isFirstSession}
+        onFetcherReady={(fetcher) => {
+          reloadMessagesRef.current = fetcher; // ✅ 関数を保存
+        }}
       />
-      
       <ChatInput
         value={input}
         onChange={handleInputChange}

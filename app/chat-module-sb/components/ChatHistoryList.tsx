@@ -1,7 +1,8 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Message } from "../types/chat";
+import { createClient } from "@supabase/supabase-js";
 
 function formatDate(dateStr: string) {
   const date = new Date(dateStr);
@@ -14,12 +15,57 @@ function formatDate(dateStr: string) {
 }
 
 interface Props {
-  messages: Message[];
+  articleId?: string;
+  uid?: string;
   isFirstSession?: boolean;
+  onFetcherReady?: (fetcher: () => void) => void; // ✅ 外部へ通知用
 }
 
-export default function ChatHistoryList({ messages, isFirstSession }: Props) {
+export default function ChatHistoryList({ articleId, uid, isFirstSession, onFetcherReady }: Props) {
+  const [messages, setMessages] = useState<Message[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // ✅ 外部から呼べる fetchMessages を useEffect の外で定義
+  const fetchMessages = async () => {
+    if (!articleId || !uid) return;
+
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+
+    const { data: session } = await supabase
+      .from("chat_sessions")
+      .select("id")
+      .eq("user_id", uid)
+      .eq("article_id", articleId)
+      .single();
+
+    if (!session) return;
+
+    const { data: chatMessages } = await supabase
+      .from("chat_messages")
+      .select("*")
+      .eq("session_id", session.id)
+      .order("created_at", { ascending: true });
+
+    if (chatMessages) {
+      setMessages(chatMessages as Message[]);
+    }
+  };
+
+  // ✅ 初回のみ読み込み
+  useEffect(() => {
+    fetchMessages();
+  }, [articleId, uid]);
+
+  // ✅ 親に fetchMessages 関数を通知
+  useEffect(() => {
+    if (onFetcherReady) {
+      onFetcherReady(fetchMessages);
+    }
+  }, [onFetcherReady]);
+
   let lastDate = "";
 
   return (
@@ -36,11 +82,16 @@ export default function ChatHistoryList({ messages, isFirstSession }: Props) {
         )}
 
         {messages.map((msg, index) => {
-          const msgDate = formatDate(msg.created_at);
+          
+          // 修正理由: created_at が存在しないケースへの備えとして null チェックを追加。
+// 変更内容: msg.created_at が undefined/null の場合、"日付不明" を表示。
+const msgDate = msg.created_at ? formatDate(msg.created_at) : "日付不明";
+
+
           const showDate = msgDate !== lastDate;
           lastDate = msgDate;
 
-          const key = msg.id ?? `${msg.role}-${index}`;
+          const key = msg.id ?? `${msg.role}-${index}`; // 安定したキー提供
 
           return (
             <div key={key}>

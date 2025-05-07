@@ -1,8 +1,7 @@
-// app/chat-module-sb/api/chat-gpt/route.ts
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
-  const { text } = await req.json();
+  const { messages } = await req.json(); // ✅ ← textではなく messagesを受け取る
 
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -11,11 +10,9 @@ export async function POST(req: Request) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "gpt-3.5-turbo",
-      messages: [
-        { role: "system", content: "あなたは親切なAI補助金アシスタントです。" },
-        { role: "user", content: text },
-      ],
+      model: "gpt-3.5-turbo", // ✅ 3.5のままでOK
+      messages: messages,     // ✅ そのまま流し込む
+      temperature: 0.3,       // 🎯 より安定した応答に
     }),
   });
 

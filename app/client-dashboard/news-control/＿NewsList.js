@@ -45,7 +45,7 @@ export default function NewsControlPage() {
           detail_url
         `
         )
-        //.eq("structured_success", true);//不要なので削除
+        .eq("structured_success", true);
 
       if (keyword) {
         query = query.or(
@@ -180,28 +180,14 @@ export default function NewsControlPage() {
                     </a>
                     
                     
-                    <div className="mt-2">
-  <button
-    onClick={async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        alert("ログインが必要です。");
-        return;
-      }
-      const uid = user.id;
-      window.location.href = `/chat-module-sb?aid=${article.article_id}&uid=${uid}`;
-    }}
-    className="text-sm bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1 rounded flex items-center"
-  >
-    💬 申請サポート
-  </button>
+                    
 </div>
 
                   </div>
                   
                 </div>
                 
-              </div>
+              
             ))}
           </div>
           

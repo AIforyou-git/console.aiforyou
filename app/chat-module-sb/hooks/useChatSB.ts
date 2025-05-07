@@ -1,52 +1,10 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { useState } from "react";
+import { postChatMessage } from "@/lib/supabaseChat";
 import { Message } from "../types/chat";
 
-export function useChatSB(articleId?: string | null) {
+export const useChatSB = (articleId?: string | null) => {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
-
-  useEffect(() => {
-    const loadMessages = async () => {
-      const {
-        data: { user },
-        error: authError,
-      } = await supabase.auth.getUser();
-
-      if (authError || !user) {
-        console.error("ユーザー取得エラー:", authError?.message);
-        return;
-      }
-
-      const { data: session } = await supabase
-        .from("chat_sessions")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("article_id", articleId)
-        .single();
-
-      if (!session) return;
-
-      const { data: chatMessages, error: msgError } = await supabase
-        .from("chat_messages")
-        .select("*")
-        .eq("session_id", session.id)
-        .order("created_at", { ascending: true });
-
-      if (msgError) {
-        console.error("メッセージ取得エラー:", msgError.message);
-        return;
-      }
-
-      setMessages(chatMessages as Message[]);
-    };
-
-    if (articleId) {
-      loadMessages();
-    }
-  }, [articleId]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInput(e.target.value);
@@ -55,105 +13,41 @@ export function useChatSB(articleId?: string | null) {
   const handleSend = async () => {
     if (!input.trim()) return;
 
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+    // ✅ クエリから uid を取得
+    const urlParams = new URLSearchParams(window.location.search);
+    const uid = urlParams.get("uid");
 
-    if (authError || !user) {
-      alert("ログインが必要です。");
+    if (!uid || !articleId) {
+      alert("ユーザーまたは記事情報が不足しています。");
       return;
     }
 
-    try {
-      // ユーザーメッセージを送信
-      const sendRes = await fetch("/api/chat-sb/send", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          userId: user.id,
-          articleId,
-          userMessage: input.trim(),
-        }),
-      });
+    // ✅ 戻り値を分解して使用
+    const { assistantText } = await postChatMessage(uid, articleId, input);
 
-      const sendResult = await sendRes.json();
-
-      if (!sendRes.ok) {
-        console.error("チャット送信エラー:", sendResult.error);
-        return;
-      }
-
-      // 楽観的更新：ユーザーメッセージを即時表示
-      const userMessage: Message = {
-        session_id: sendResult.sessionId,
+    setMessages([
+      ...messages,
+      {
+        id: "user-" + Date.now(),
         role: "user",
-        text: input.trim(),
+        text: input,
         created_at: new Date().toISOString(),
-      };
-
-      setMessages((prev) => [...prev, userMessage]);
-      setInput("");
-
-      // ✨ ここで GPT応答を取得
-      const gptRes = await fetch("/api/chat-gpt", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          text: input.trim(),
-        }),
-      });
-
-      const gptResult = await gptRes.json();
-
-      if (!gptRes.ok) {
-        console.error("GPT応答エラー:", gptResult.error);
-        return;
-      }
-
-      // GPTメッセージを保存
-      const saveGptRes = await fetch("/api/chat-sb/send", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          userId: user.id,
-          articleId,
-          userMessage: gptResult.answer,
-          role: "assistant", // 🔥 assistant役割で保存
-        }),
-      });
-
-      const saveGptResult = await saveGptRes.json();
-
-      if (!saveGptRes.ok) {
-        console.error("GPTメッセージ保存エラー:", saveGptResult.error);
-        return;
-      }
-
-      // 楽観的更新：GPTメッセージを即時表示
-      const assistantMessage: Message = {
-        session_id: saveGptResult.sessionId,
+      },
+      {
+        id: "assistant-" + Date.now(),
         role: "assistant",
-        text: gptResult.answer,
+        text: assistantText,
         created_at: new Date().toISOString(),
-      };
+      },
+    ]);
 
-      setMessages((prev) => [...prev, assistantMessage]);
-    } catch (error: any) {
-      console.error("送信リクエスト失敗:", error.message);
-    }
+    setInput("");
   };
 
   return {
     input,
-    messages,
     handleInputChange,
     handleSend,
+    messages,
   };
-}
+};

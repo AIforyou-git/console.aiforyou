@@ -1,135 +1,137 @@
-'use client'
+'use client';
 
-import { useEffect, useState } from 'react'
-import { createClient } from '@supabase/supabase-js'
-import { useRouter } from 'next/navigation'
+import React, { useEffect, useState } from 'react';
+import scrapingClient from '@/lib/supabaseScrapingClient';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+export default function NewsControlAllPage() {
+  const [data, setData] = useState([]);
+  const [limit, setLimit] = useState(10);
+  const [loading, setLoading] = useState(true);
+  const [visibleColumns, setVisibleColumns] = useState([]);
+  const [showColumnSelector, setShowColumnSelector] = useState(false);
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey)
-
-export default function AllArticlesPage() {
-  const [data, setData] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
-  const [page, setPage] = useState(0)
-  const [sortBy, setSortBy] = useState('structured_at')
-  const [ascending, setAscending] = useState(false)
-  const perPage = 20
-  const router = useRouter()
+  // localStorage から復元
+  useEffect(() => {
+    const savedColumns = localStorage.getItem('visibleColumns');
+    if (savedColumns) {
+      setVisibleColumns(JSON.parse(savedColumns));
+    }
+  }, []);
 
   useEffect(() => {
-    const fetch = async () => {
-      setLoading(true)
-      const from = page * perPage
-      const to = from + perPage - 1
-
-      let query = supabase
+    const fetchData = async () => {
+      setLoading(true);
+      const { data, error } = await scrapingClient
         .from('jnet_articles_public')
         .select('*')
-        .order(sortBy, { ascending })
-
-      if (search) {
-        query = query.ilike('structured_title', `%${search}%`)
-      }
-
-      const { data, error } = await query.range(from, to)
+        .range(0, limit - 1);
 
       if (error) {
-        console.error('取得エラー:', error.message)
+        console.error('取得エラー:', error.message);
+        setData([]);
       } else {
-        setData(data)
+        setData(data || []);
+        if (data && data.length > 0 && visibleColumns.length === 0) {
+          setVisibleColumns(Object.keys(data[0]));
+        }
       }
+      setLoading(false);
+    };
 
-      setLoading(false)
-    }
+    fetchData();
+  }, [limit]);
 
-    fetch()
-  }, [page, search, sortBy, ascending])
+  // localStorage へ保存
+  useEffect(() => {
+    localStorage.setItem('visibleColumns', JSON.stringify(visibleColumns));
+  }, [visibleColumns]);
 
-  const handleSort = (column) => {
-    if (sortBy === column) {
-      setAscending(!ascending)
-    } else {
-      setSortBy(column)
-      setAscending(true)
-    }
-  }
+  const handleColumnToggle = (column) => {
+    setVisibleColumns((prev) =>
+      prev.includes(column)
+        ? prev.filter((col) => col !== column)
+        : [...prev, column]
+    );
+  };
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">🗂 データベース全件一覧（確認用）</h1>
+    <div className="p-4">
+      <h1 className="text-xl font-bold mb-4">すべての記事データ</h1>
 
-      <input
-        type="text"
-        placeholder="タイトル or 概要で検索..."
-        value={search}
-        onChange={(e) => {
-          setPage(0)
-          setSearch(e.target.value)
-        }}
-        className="w-full px-3 py-2 border rounded mb-4"
-      />
+      <div className="mb-4 flex items-center gap-4">
+        <label className="text-sm">
+          表示件数：
+          <select
+            value={limit}
+            onChange={(e) => setLimit(Number(e.target.value))}
+            className="ml-2 border px-2 py-1 text-sm"
+          >
+            {[10, 50, 100, 500].map((n) => (
+              <option key={n} value={n}>{n}件</option>
+            ))}
+          </select>
+        </label>
+
+        <button
+          onClick={() => setShowColumnSelector(!showColumnSelector)}
+          className="text-sm bg-gray-200 px-3 py-1 rounded hover:bg-gray-300"
+        >
+          カラム選択 {showColumnSelector ? '▲' : '▼'}
+        </button>
+      </div>
+
+      {showColumnSelector && data.length > 0 && (
+        <div className="mb-4 flex flex-wrap gap-2 text-sm">
+          {Object.keys(data[0]).map((key) => (
+            <label key={key} className="mr-2">
+              <input
+                type="checkbox"
+                checked={visibleColumns.includes(key)}
+                onChange={() => handleColumnToggle(key)}
+                className="mr-1"
+              />
+              {key}
+            </label>
+          ))}
+        </div>
+      )}
 
       {loading ? (
-        <p>読み込み中...</p>
+        <div className="text-sm mt-4">読み込み中...</div>
       ) : (
-        <>
-          <div className="overflow-auto max-w-full">
-            <table className="table-auto text-sm border w-full whitespace-normal">
-              <thead className="bg-gray-100 text-left text-xs sticky top-0 z-10">
-                <tr className="border-b">
-                  {data[0] &&
-                    Object.keys(data[0]).map((key) => (
-                      <th
-                        key={key}
-                        className="px-3 py-2 border cursor-pointer hover:bg-gray-200"
-                        onClick={() => handleSort(key)}
-                      >
-                        {key}
-                        {sortBy === key && (ascending ? ' ▲' : ' ▼')}
-                      </th>
-                    ))}
-                </tr>
-              </thead>
-              <tbody>
-                {data.map((row, i) => (
-                  <tr
-                    key={i}
-                    className="hover:bg-blue-50 cursor-pointer border-b"
-                    onClick={() => router.push(`/admin-dashboard/news-control/all/${row.article_id}`)}
+        <div className="overflow-x-auto mt-4">
+          <table className="table-auto border-collapse border w-full text-xs">
+            <thead>
+              <tr>
+                {visibleColumns.map((key) => (
+                  <th
+                    key={key}
+                    className="border px-2 py-1 bg-gray-100 sticky top-0 z-10 whitespace-nowrap text-left"
                   >
-                    {Object.values(row).map((value, j) => (
-                      <td key={j} className="px-3 py-3 border break-words max-w-xs text-sm">
-                        {typeof value === 'object' && value !== null
-                          ? JSON.stringify(value).slice(0, 40) + '…'
-                          : value?.toString().slice(0, 40) || ''}
-                      </td>
-                    ))}
-                  </tr>
+                    {key}
+                  </th>
                 ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="flex justify-between mt-4">
-            <button
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-              className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
-              disabled={page === 0}
-            >
-              ← 前へ
-            </button>
-            <button
-              onClick={() => setPage((p) => p + 1)}
-              className="px-4 py-2 bg-gray-200 rounded"
-            >
-              次へ →
-            </button>
-          </div>
-        </>
+              </tr>
+            </thead>
+            <tbody>
+              {data.map((row, rowIndex) => (
+                <tr
+                  key={rowIndex}
+                  className={
+                    row['structured_success'] === false ? 'bg-red-100' : ''
+                  }
+                >
+                  {visibleColumns.map((key) => (
+                    <td key={key} className="border px-2 py-1 align-top">
+                      {String(row[key] ?? '')}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
-  )
+  );
 }

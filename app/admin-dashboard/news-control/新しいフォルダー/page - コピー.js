@@ -1,79 +1,62 @@
-"use client";
+'use client'
 
-import { useEffect, useState } from "react";
-import scrapingClient from '@/lib/supabaseScrapingClient'; // ✅ 共通クライアントを使用
-import Link from "next/link";
-import { supabase } from "@/lib/supabaseClient";
+import { useEffect, useState } from 'react'
+import scrapingClient from '@/lib/supabaseScrapingClient' // ✅ 修正
 
-
-
-const keywordOptions = ["補助金", "災害", "設備投資", "人材育成"];
-const areaOptions = ["全国", "北海道", "東京", "大阪", "福岡"];
+const keywordOptions = ['補助金', '災害', '設備投資', '人材育成']
+const areaOptions = ['全国', '北海道', '東京', '大阪', '福岡']
 const sortOptions = [
-  { label: "構造化日（新しい順）", value: "structured_at" },
-  { label: "タイトル（昇順）", value: "structured_title" },
-];
+  { label: '構造化日（新しい順）', value: 'structured_at' },
+  { label: 'タイトル（昇順）', value: 'structured_title' },
+]
 
 export default function NewsControlPage() {
-  const [articles, setArticles] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(0);
-  const perPage = 20;
+  const [articles, setArticles] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(0)
+  const perPage = 20
 
-  const [keyword, setKeyword] = useState("");
-  const [area, setArea] = useState("");
-  const [sortBy, setSortBy] = useState("structured_at");
-  const [ascending, setAscending] = useState(false);
+  const [keyword, setKeyword] = useState('')
+  const [area, setArea] = useState('')
+  const [sortBy, setSortBy] = useState('structured_at')
+  const [ascending, setAscending] = useState(false)
 
   useEffect(() => {
     const fetchArticles = async () => {
-      setLoading(true);
-      const from = page * perPage;
-      const to = from + perPage - 1;
+      setLoading(true)
+      const from = page * perPage
+      const to = from + perPage - 1
 
       let query = scrapingClient
-        .from("jnet_articles_public")
-        .select(
-          `
-          article_id,
-          structured_title,
-          structured_agency,
-          structured_prefecture,
-          structured_application_period,
-          structured_summary_extract,
-          structured_amount_max,
-          detail_url
-        `
-        )
-        //.eq("structured_success", true);//不要なので削除
+        .from('jnet_articles_public')
+        .select('article_id, structured_title, structured_agency, structured_prefecture, structured_application_period, structured_summary_extract, structured_amount_max, detail_url')
+        //.eq('structured_success', true)
 
       if (keyword) {
-        query = query.or(
-          `(structured_title.ilike.%${keyword}%,structured_summary_extract.ilike.%${keyword}%)`
-        );
+        query = query.or(`structured_title.ilike.%${keyword}%,structured_summary_extract.ilike.%${keyword}%`)
       }
 
-      if (area === "東京") {
-        query = query.in("structured_prefecture", ["東京都", "全国"]);
+      if (area === '東京') {
+        query = query.in('structured_prefecture', ['東京都', '全国'])
       } else if (area) {
-        query = query.eq("structured_prefecture", area);
+        query = query.eq('structured_prefecture', area)
       }
 
-      query = query.order(sortBy, { ascending });
+      query = query.order(sortBy, { ascending })
 
-      const { data, error } = await query.range(from, to);
+      const { data, error } = await query.range(from, to)
 
       if (error) {
-        console.error("記事の取得エラー:", error.message);
+        console.error('記事の取得エラー:', error.message)
       } else {
-        setArticles(data || []);
+        setArticles(data)
       }
 
-      setLoading(false);
-    };
+      setLoading(false)
+    }
 
-    fetchArticles();
-  }, [page, keyword, area, sortBy, ascending]);
+    fetchArticles()
+  }, [page, keyword, area, sortBy, ascending])
 
   return (
     <div className="p-6">
@@ -85,8 +68,8 @@ export default function NewsControlPage() {
           placeholder="キーワード検索（例：補助金, 雇用）"
           value={keyword}
           onChange={(e) => {
-            setPage(0);
-            setKeyword(e.target.value);
+            setPage(0)
+            setKeyword(e.target.value)
           }}
           className="border px-3 py-2 rounded w-full md:w-1/3"
         />
@@ -94,8 +77,8 @@ export default function NewsControlPage() {
         <select
           value={area}
           onChange={(e) => {
-            setPage(0);
-            setArea(e.target.value);
+            setPage(0)
+            setArea(e.target.value)
           }}
           className="border px-3 py-2 rounded w-full md:w-1/4"
         >
@@ -110,9 +93,9 @@ export default function NewsControlPage() {
         <select
           value={sortBy}
           onChange={(e) => {
-            setPage(0);
-            setSortBy(e.target.value);
-            setAscending(e.target.value !== "structured_at");
+            setPage(0)
+            setSortBy(e.target.value)
+            setAscending(e.target.value !== 'structured_at')
           }}
           className="border px-3 py-2 rounded w-full md:w-1/4"
         >
@@ -131,8 +114,8 @@ export default function NewsControlPage() {
             key={word}
             className="text-sm bg-blue-100 text-blue-800 px-2 py-1 mr-2 rounded"
             onClick={() => {
-              setPage(0);
-              setKeyword(word);
+              setPage(0)
+              setKeyword(word)
             }}
           >
             {word}
@@ -152,13 +135,9 @@ export default function NewsControlPage() {
               >
                 <div className="flex justify-between items-start">
                   <div>
-                    <h2 className="text-lg font-semibold">
-                      {article.structured_title || "（タイトル未定）"}
-                    </h2>
+                    <h2 className="text-lg font-semibold">{article.structured_title || '（タイトル未定）'}</h2>
                     <p className="text-sm text-gray-500">
-                      {article.structured_agency || "機関不明"} /{" "}
-                      {article.structured_prefecture || ""} /{" "}
-                      {article.structured_application_period?.start || "未定"}
+                      {article.structured_agency || '機関不明'} / {article.structured_prefecture || ''} / {article.structured_application_period?.start || '未定'}
                     </p>
                     {article.structured_summary_extract && (
                       <p className="text-sm text-gray-700 mt-1">
@@ -178,33 +157,11 @@ export default function NewsControlPage() {
                     >
                       記事を見る
                     </a>
-                    
-                    
-                    <div className="mt-2">
-  <button
-    onClick={async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        alert("ログインが必要です。");
-        return;
-      }
-      const uid = user.id;
-      window.location.href = `/chat-module-sb?aid=${article.article_id}&uid=${uid}`;
-    }}
-    className="text-sm bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1 rounded flex items-center"
-  >
-    💬 申請サポート
-  </button>
-</div>
-
                   </div>
-                  
                 </div>
-                
               </div>
             ))}
           </div>
-          
 
           <div className="flex justify-between mt-6">
             <button
@@ -224,5 +181,5 @@ export default function NewsControlPage() {
         </>
       )}
     </div>
-  );
+  )
 }
