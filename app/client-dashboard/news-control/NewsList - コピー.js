@@ -4,8 +4,6 @@ import { useEffect, useState } from "react";
 import scrapingClient from '@/lib/supabaseScrapingClient'; // ✅ 共通クライアントを使用
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
-import { useRouter } from "next/navigation";
-
 
 
 
@@ -21,7 +19,6 @@ export default function NewsControlPage() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const perPage = 20;
-  const router = useRouter(); // ← この行を追加
 
   const [keyword, setKeyword] = useState("");
   const [area, setArea] = useState("");
@@ -184,58 +181,20 @@ export default function NewsControlPage() {
                     
                     
                     <div className="mt-2">
-                    <button
-  onClick={async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      alert("ログインが必要です。");
-      return;
-    }
-    const uid = user.id;
-const userEmail = user.email ?? null;
-const articleId = article.article_id;
-const articleTitle = article.structured_title ?? null;
-
-// ✅ セッション取得または新規作成
-const { data: session, error: fetchError } = await supabase
-  .from("chat_sessions")
-  .select("id")
-  .eq("user_id", uid)
-  .eq("article_id", articleId)
-  .single();
-
-let sessionId = session?.id;
-
-if (!sessionId) {
-  const { data: inserted, error: insertError } = await supabase
-    .from("chat_sessions")
-    .insert([
-      {
-        user_id: uid,
-        article_id: articleId,
-        user_email: userEmail,
-        article_title_snippet: articleTitle ?? "（タイトル未定）",
-        status: "active",
-      },
-    ])
-    .select("id")
-    .single();
-
-  if (insertError || !inserted) {
-    alert("セッションの作成に失敗しました。");
-    return;
-  }
-
-  sessionId = inserted.id;
-}
-
-    // ✅ sid を含めて遷移
-    router.push(`/chat-module-sb?aid=${articleId}&uid=${uid}&sid=${sessionId}`);
-  }}
-  className="text-sm bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1 rounded flex items-center"
->
-  💬 申請サポート
-</button>
+  <button
+    onClick={async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        alert("ログインが必要です。");
+        return;
+      }
+      const uid = user.id;
+      window.location.href = `/chat-module-sb?aid=${article.article_id}&uid=${uid}`;
+    }}
+    className="text-sm bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1 rounded flex items-center"
+  >
+    💬 申請サポート
+  </button>
 </div>
 
                   </div>
