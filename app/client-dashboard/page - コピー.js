@@ -14,9 +14,6 @@ export default function ClientDashboard() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [clientName, setClientName] = useState("");
 
-  const [retryCount, setRetryCount] = useState(0); // ✅ 再試行カウント
-  const [fetching, setFetching] = useState(true); // ✅ 表示制御フラグ
-
   useEffect(() => {
     const loadClientData = async () => {
       if (!user?.id) return;
@@ -40,16 +37,11 @@ export default function ClientDashboard() {
         setClientName(name);
       } catch (err) {
         console.error("❌ クライアント情報取得エラー:", err);
-        if (retryCount < 3) {
-          setTimeout(() => setRetryCount((prev) => prev + 1), 1000);
-        }
-      } finally {
-        setFetching(false); // ✅ 成否に関係なく表示許可
       }
     };
 
     if (!loading) loadClientData();
-  }, [user, loading, retryCount]);
+  }, [user, loading]);
 
   const handleModalClose = async () => {
     setShowInfoModal(false);
@@ -71,24 +63,20 @@ export default function ClientDashboard() {
     }
   };
 
-  if (loading || fetching) return (
-    <div className="p-6 text-center text-gray-600">
-      🔄 クライアント情報を取得中です...
-    </div>
-  );
+  if (loading) return <div className="p-6">読み込み中...</div>;
 
   if (!user || user.role !== "client") {
     return <div className="p-6 text-red-500">アクセス権がありません。</div>;
   }
 
   return (
-    <div className="max-w-screen-xl mx-auto px-2 pt-12 pb-32 relative bg-[#f5faff] min-h-screen">
+    <div className="max-w-screen-xl mx-auto px- 2 pt-12 pb-32 relative bg-[#f5faff] min-h-screen">
       <h1 className="text-sm text-center text-emerald-800 mb-2">
         {clientName} 様の最新情報
       </h1>
 
       <div className="bg-white rounded-2xl p-6 shadow-lg border border-emerald-100">
-        <NewsList clientData={clientData} /> {/* ✅ データ渡す */}
+        <NewsList />
       </div>
 
       {/* フッターメニュー */}

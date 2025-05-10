@@ -8,49 +8,41 @@ export default function Settings() {
       icon: "fas fa-envelope",
       title: "メール設定",
       desc: "メールテンプレート編集・自動送信設定",
-      href: "/admin-dashboard/mail-template", // ✅ ここだけ実ページへ
     },
     {
       icon: "fas fa-credit-card",
       title: "支払い設定",
       desc: "プラン変更・支払い履歴",
-      href: "/preparing",
     },
     {
       icon: "fas fa-database",
       title: "データ設定",
       desc: "バックアップ・データエクスポート",
-      href: "/preparing",
     },
     {
       icon: "fas fa-bell",
       title: "通知設定",
       desc: "メール通知・重要なお知らせ",
-      href: "/preparing",
     },
     {
       icon: "fas fa-user",
       title: "アカウント設定",
       desc: "プロフィール・パスワード変更",
-      href: "/preparing",
     },
     {
       icon: "fas fa-link",
       title: "連携設定",
       desc: "Googleカレンダー・Slack連携",
-      href: "/preparing",
     },
     {
       icon: "fas fa-users-cog",
       title: "ユーザー設定",
       desc: "メンバー管理・権限変更",
-      href: "/preparing",
     },
     {
       icon: "fas fa-building",
       title: "代理店設定",
       desc: "代理店向け機能（将来的に追加）",
-      href: "/preparing",
     },
   ];
 
@@ -63,7 +55,7 @@ export default function Settings() {
           {items.map((item, idx) => (
             <Link
               key={idx}
-              href={item.href}
+              href="/preparing"
               className="bg-white border border-gray-200 rounded-lg shadow-md hover:shadow-lg transition p-5 flex flex-col items-start space-y-2"
             >
               <i className={`${item.icon} text-xl text-blue-500`} />

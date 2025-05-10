@@ -48,6 +48,9 @@ export default function EditArticlePage() {
           structured_grant_type: data.structured_grant_type || '',
           structured_purpose: data.structured_purpose || '',
           structured_amount_description: data.structured_amount_description || '',
+          visible: data.visible ?? false,
+  send_today: data.send_today ?? false,
+  admin_memo: data.admin_memo || '',
         });
       }
     };
@@ -92,6 +95,10 @@ export default function EditArticlePage() {
       structured_grant_type: formData.structured_grant_type,
       structured_purpose: formData.structured_purpose,
       structured_amount_description: formData.structured_amount_description,
+      
+      visible: formData.visible,
+send_today: formData.send_today,
+admin_memo: formData.admin_memo,
     };
 
     const { error } = await scrapingClient
@@ -164,6 +171,39 @@ export default function EditArticlePage() {
               onChange={handleChange}
             />
           </label>
+          {/* クライアント表示・配信制御フラグ */}
+<label className="block mt-4">
+  <span className="text-gray-700">クライアントに公開</span>
+  <input
+    type="checkbox"
+    className="mt-1"
+    checked={formData.visible}
+    onChange={(e) => setFormData({ ...formData, visible: e.target.checked })}
+  />
+</label>
+
+<label className="block mt-3">
+  <span className="text-gray-700">本日配信対象に含める</span>
+  <input
+    type="checkbox"
+    className="mt-1"
+    checked={formData.send_today}
+    onChange={(e) => setFormData({ ...formData, send_today: e.target.checked })}
+  />
+</label>
+
+<label className="block mt-3">
+  <span className="text-gray-700">管理メモ</span>
+  <textarea
+    className="w-full border px-2 py-1 mt-1"
+    rows={2}
+    value={formData.admin_memo}
+    onChange={(e) => setFormData({ ...formData, admin_memo: e.target.value })}
+  />
+</label>
+
+
+
           <label className="block">
             <span className="text-gray-700">募集機関</span>
             <input

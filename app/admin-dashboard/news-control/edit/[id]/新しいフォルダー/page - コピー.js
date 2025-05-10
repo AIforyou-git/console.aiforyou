@@ -1,15 +1,12 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { structuredFieldsMeta } from '../../_meta/structuredFieldsMeta'; // 追加
 import { useRouter, useParams } from 'next/navigation';
 import scrapingClient from '@/lib/supabaseScrapingClient';
 
 export default function EditArticlePage() {
   const router = useRouter();
   const { id } = useParams();
-  const [showMetaModal, setShowMetaModal] = useState(false); // モーダル状態追加
-  const numericId = Number(id);
   const [article, setArticle] = useState(null);
   const [formData, setFormData] = useState({
     structured_title: '',
@@ -28,7 +25,7 @@ export default function EditArticlePage() {
       const { data, error } = await scrapingClient
         .from('jnet_articles_public')
         .select('*')
-        .eq('article_id', numericId)
+        .eq('article_id', id)
         .single();
 
       if (error) {
@@ -52,10 +49,10 @@ export default function EditArticlePage() {
       }
     };
 
-    if (numericId) {
+    if (id) {
       fetchArticle();
     }
-  }, [numericId]);
+  }, [id]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -85,10 +82,7 @@ export default function EditArticlePage() {
         start: formData.structured_application_period.start,
         end: formData.structured_application_period.end,
       },
-      structured_industry_keywords: formData.structured_industry_keywords
-        .split(',')
-        .map((kw) => kw.trim())
-        .filter(Boolean),
+      structured_industry_keywords: formData.structured_industry_keywords.split(',').map((kw) => kw.trim()),
       structured_grant_type: formData.structured_grant_type,
       structured_purpose: formData.structured_purpose,
       structured_amount_description: formData.structured_amount_description,
@@ -97,7 +91,7 @@ export default function EditArticlePage() {
     const { error } = await scrapingClient
       .from('jnet_articles_public')
       .update(updatedData)
-      .eq('article_id', numericId);
+      .eq('article_id', id);
 
     if (error) {
       console.error('Error updating article:', error.message);
@@ -112,31 +106,13 @@ export default function EditArticlePage() {
 
   return (
     <div className="p-4 max-w-7xl mx-auto">
-      <div className="flex justify-between items-center mb-4">
-  <button
-    onClick={() => setShowMetaModal(true)}
-    className="text-sm text-blue-600 underline"
-  >
-    構造化カラムの説明を見る
-  </button>
-</div>
-      
       <h1 className="text-xl font-bold mb-4">記事編集</h1>
-      
-
-
       <div className="grid grid-cols-2 gap-6 text-sm">
-
-        
         {/* 左側：元データ */}
-        <div className="bg-gray-50 border rounded p-4 space-y-2">
-          <h2 className="text-base font-semibold mb-2">元データ</h2>
+        <div>
+          <h2 className="font-semibold mb-2">元データ</h2>
           <p><strong>article_id：</strong>{article.article_id}</p>
-          <p><strong>詳細URL：</strong>
-            <a href={article.detail_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
-              {article.detail_url}
-            </a>
-          </p>
+          <p><strong>詳細URL：</strong><a href={article.detail_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">{article.detail_url}</a></p>
           <p><strong>タイトル：</strong>{article.title}</p>
           <p><strong>募集機関：</strong>{article.agency}</p>
           <p><strong>地域（大）：</strong>{article.region_large}</p>
@@ -147,15 +123,9 @@ export default function EditArticlePage() {
         </div>
 
         {/* 右側：構造化データ（編集可能） */}
-        <div className="border rounded p-4 space-y-4 bg-white">
-          <h2 className="text-base font-semibold mb-2">構造化データ（編集）</h2>
-          <p><strong>article_id：</strong>{article.article_id}</p>
-          <p><strong>詳細URL：</strong>
-            <a href={article.detail_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
-              {article.detail_url}
-            </a>
-          </p>
-          <label className="block">
+        <div>
+          <h2 className="font-semibold mb-2">構造化データ（編集可）</h2>
+          <label className="block mb-2">
             <span className="text-gray-700">タイトル</span>
             <input
               name="structured_title"
@@ -164,7 +134,7 @@ export default function EditArticlePage() {
               onChange={handleChange}
             />
           </label>
-          <label className="block">
+          <label className="block mb-2">
             <span className="text-gray-700">募集機関</span>
             <input
               name="structured_agency"
@@ -173,7 +143,7 @@ export default function EditArticlePage() {
               onChange={handleChange}
             />
           </label>
-          <label className="block">
+          <label className="block mb-2">
             <span className="text-gray-700">地域（大）</span>
             <input
               name="structured_prefecture"
@@ -182,7 +152,7 @@ export default function EditArticlePage() {
               onChange={handleChange}
             />
           </label>
-          <label className="block">
+          <label className="block mb-2">
             <span className="text-gray-700">地域（小）</span>
             <input
               name="structured_city"
@@ -191,7 +161,7 @@ export default function EditArticlePage() {
               onChange={handleChange}
             />
           </label>
-          <label className="block">
+          <label className="block mb-2">
             <span className="text-gray-700">期間（開始）</span>
             <input
               type="date"
@@ -201,7 +171,7 @@ export default function EditArticlePage() {
               onChange={handleChange}
             />
           </label>
-          <label className="block">
+          <label className="block mb-2">
             <span className="text-gray-700">期間（終了）</span>
             <input
               type="date"
@@ -211,7 +181,7 @@ export default function EditArticlePage() {
               onChange={handleChange}
             />
           </label>
-          <label className="block">
+          <label className="block mb-2">
             <span className="text-gray-700">業種</span>
             <input
               name="structured_industry_keywords"
@@ -220,7 +190,7 @@ export default function EditArticlePage() {
               onChange={handleChange}
             />
           </label>
-          <label className="block">
+          <label className="block mb-2">
             <span className="text-gray-700">カテゴリ</span>
             <input
               name="structured_grant_type"
@@ -229,29 +199,27 @@ export default function EditArticlePage() {
               onChange={handleChange}
             />
           </label>
-          <label className="block">
+          <label className="block mb-2">
             <span className="text-gray-700">目的</span>
             <textarea
               name="structured_purpose"
               className="w-full border px-2 py-1 mt-1"
-              rows={3}
               value={formData.structured_purpose}
               onChange={handleChange}
             />
           </label>
-          <label className="block">
+          <label className="block mb-2">
             <span className="text-gray-700">金額説明</span>
             <textarea
               name="structured_amount_description"
               className="w-full border px-2 py-1 mt-1"
-              rows={2}
               value={formData.structured_amount_description}
               onChange={handleChange}
             />
           </label>
         </div>
       </div>
-      <div className="mt-6 flex gap-3">
+      <div className="mt-4">
         <button
           onClick={handleSave}
           className="bg-green-500 text-white px-4 py-2 rounded"
@@ -260,45 +228,11 @@ export default function EditArticlePage() {
         </button>
         <button
           onClick={() => router.push('/admin-dashboard/news-control')}
-          className="bg-gray-500 text-white px-4 py-2 rounded"
+          className="ml-2 bg-gray-500 text-white px-4 py-2 rounded"
         >
           キャンセル
         </button>
       </div>
-       {/* モーダル本体 */}
-    {showMetaModal && (
-      <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-        <div className="bg-white p-6 w-[600px] max-h-[80vh] overflow-y-auto rounded shadow-lg">
-          <h2 className="text-lg font-bold mb-4">構造化カラムの説明</h2>
-          <table className="table-auto w-full text-sm border">
-            <thead>
-              <tr className="bg-gray-100">
-                <th className="border px-2 py-1">カラム名</th>
-                <th className="border px-2 py-1">説明</th>
-                <th className="border px-2 py-1">重要度</th>
-              </tr>
-            </thead>
-            <tbody>
-              {structuredFieldsMeta.map((item) => (
-                <tr key={item.key}>
-                  <td className="border px-2 py-1 font-mono">{item.key}</td>
-                  <td className="border px-2 py-1">{item.description}</td>
-                  <td className="border px-2 py-1">{item.importance}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className="text-right mt-4">
-            <button
-              onClick={() => setShowMetaModal(false)}
-              className="text-sm text-gray-600 hover:text-black"
-            >
-              閉じる
-            </button>
-          </div>
-        </div>
-      </div>
-    )}
     </div>
   );
 }

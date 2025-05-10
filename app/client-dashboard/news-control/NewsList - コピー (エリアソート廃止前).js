@@ -28,102 +28,63 @@ export default function NewsControlPage() {
   const [sortBy, setSortBy] = useState("structured_at");
   const [ascending, setAscending] = useState(false);
 
-  // ✅ クライアントの都道府県（region_prefecture）を取得して area にセット（初期化）
-useEffect(() => {
-  const fetchClientRegion = async () => {
-    if (area) return; // ← UIで選択されていれば何もしない
-
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { data, error } = await supabase
-      .from("clients")
-      .select("region_prefecture")
-      .eq("uid", user.id)
-      .single();
-
-    if (error) {
-      console.warn("地域情報の取得エラー:", error.message);
-      return;
-    }
-
-    // ✅ 自動で地域設定し、全国対応も含めた絞り込みを可能に
-    if (data?.region_prefecture) {
-  console.log("✅ クライアント地域取得:", data.region_prefecture);
-  setArea(data.region_prefecture);
-}
-  };
-
-  fetchClientRegion();
-}, []); // 初回マウント時のみ実行
-
   useEffect(() => {
-  const fetchArticles = async (clientArea) => {
-    setLoading(true);
-    const from = page * perPage;
-    const to = from + perPage - 1;
+    const fetchArticles = async () => {
+      setLoading(true);
+      const from = page * perPage;
+      const to = from + perPage - 1;
 
-    let query = scrapingClient
-      .from("jnet_articles_public")
-      .select(`
-        article_id,
-        structured_title,
-        structured_agency,
-        structured_prefecture,
-        structured_application_period,
-        structured_summary_extract,
-        structured_amount_max,
-        detail_url
-      `);
+      let query = scrapingClient
+        .from("jnet_articles_public")
+        .select(
+          `
+          article_id,
+          structured_title,
+          structured_agency,
+          structured_prefecture,
+          structured_application_period,
+          structured_summary_extract,
+          structured_amount_max,
+          detail_url
+        `
+        )
+        // ⬇⬇⬇ ここに追加（コメントアウト状態で）⬇⬇⬇
+  // .eq("visible", true); // ← 公開記事のみ表示するフィルタ（将来有効化予定）
 
-    //🧠 記事マッチング（取得地域と全国）
-    if (clientArea) {
-      query = query.in("structured_prefecture", [clientArea, "全国"]);
-    }
+  //🧠 記事マッチング  
+//クライアントが選択したエリア（都道府県）に一致する記事、および「全国」対象記事を自動抽出。 ※業種マッチングは現在未使用（今後対応予定）。公開記事判定 `visible` は一時無効化中。
+if (area) {
+  query = query.in("structured_prefecture", [area, "全国"]);
+}
 
-    if (keyword) {
-      query = query.or(
-        `(structured_title.ilike.%${keyword}%,structured_summary_extract.ilike.%${keyword}%)`
-      );
-    }
 
-    query = query.order(sortBy, { ascending });
+      if (keyword) {
+        query = query.or(
+          `(structured_title.ilike.%${keyword}%,structured_summary_extract.ilike.%${keyword}%)`
+        );
+      }
 
-    const { data, error } = await query.range(from, to);
+      if (area === "東京") {
+        query = query.in("structured_prefecture", ["東京都", "全国"]);
+      } else if (area) {
+        query = query.eq("structured_prefecture", area);
+      }
 
-    if (error) {
-      console.error("記事の取得エラー:", error.message);
-    } else {
-      setArticles(data || []);
-    }
+      query = query.order(sortBy, { ascending });
 
-    setLoading(false);
-  };
+      const { data, error } = await query.range(from, to);
 
-  const fetchClientRegionAndArticles = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+      if (error) {
+        console.error("記事の取得エラー:", error.message);
+      } else {
+        setArticles(data || []);
+      }
 
-    const { data, error } = await supabase
-      .from("clients")
-      .select("region_prefecture")
-      .eq("uid", user.id)
-      .single();
+      setLoading(false);
+    };
 
-    if (error) {
-      console.warn("地域情報の取得エラー:", error.message);
-      return;
-    }
-
-    if (data?.region_prefecture) {
-      setArea(data.region_prefecture); // ✅ 状態にもセット
-      await fetchArticles(data.region_prefecture);
-    }
-  };
-
-  fetchClientRegionAndArticles();
-}, [page, keyword, sortBy, ascending]); // ✅ area は外す
-
+    fetchArticles();
+  }, [page, keyword, area, sortBy, ascending]);
 
   return (
     <div className="p-6">
@@ -141,21 +102,21 @@ useEffect(() => {
           className="border px-3 py-2 rounded w-full md:w-1/3"
         />
 
-      <select
-  value={area}
-  onChange={(e) => {
-    setPage(0);
-    setArea(e.target.value);
-  }}
-  className="hidden"
->
-  <option value="">エリア選択</option>
-  {areaOptions.map((opt) => (
-    <option key={opt} value={opt}>
-      {opt}
-    </option>
-  ))}
-</select>
+        <select
+          value={area}
+          onChange={(e) => {
+            setPage(0);
+            setArea(e.target.value);
+          }}
+          className="border px-3 py-2 rounded w-full md:w-1/4"
+        >
+          <option value="">エリア選択</option>
+          {areaOptions.map((opt) => (
+            <option key={opt} value={opt}>
+              {opt}
+            </option>
+          ))}
+        </select>
 
         <select
           value={sortBy}
