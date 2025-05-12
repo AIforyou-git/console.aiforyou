@@ -82,53 +82,52 @@ export default function ClientDashboard() {
   }
 
   return (
-  <div className="w-full px-4 sm:px-6 pt-12 pb-32 relative bg-[#f5faff] min-h-screen">
-    <h1 className="text-sm text-center text-emerald-800 mb-2">
-      {clientName} 様の最新情報
-    </h1>
+    <div className="max-w-screen-xl mx-auto px-2 pt-12 pb-32 relative bg-[#f5faff] min-h-screen">
+      <h1 className="text-sm text-center text-emerald-800 mb-2">
+        {clientName} 様の最新情報
+      </h1>
 
-    <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-lg border border-emerald-100">
-      <NewsList clientData={clientData} /> {/* ✅ データ渡す */}
-    </div>
-
-    {/* フッターメニュー */}
-    <div className="fixed bottom-0 left-0 w-full bg-white border-t shadow z-40">
-      <div className="w-full max-w-screen-md mx-auto flex flex-wrap justify-around items-center py-3 gap-2 px-2">
-        <a
-          href="https://chat.guaido.ai/room/yy3OIWXmJPw4u2RrpxzRwg"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <button className="bg-emerald-400 hover:bg-emerald-700 text-white px-4 py-2 rounded-full w-36 sm:w-40 shadow-md text-sm">
-            🤖 AI相談
-          </button>
-        </a>
-        <Link href="/client-dashboard/invite">
-          <button className="bg-emerald-400 hover:bg-emerald-600 text-white px-4 py-2 rounded-full w-36 sm:w-40 shadow-md text-sm">
-            📨 友達に紹介
-          </button>
-        </Link>
+      <div className="bg-white rounded-2xl p-6 shadow-lg border border-emerald-100">
+        <NewsList clientData={clientData} /> {/* ✅ データ渡す */}
       </div>
-    </div>
 
-    {/* モーダル部分はそのまま */}
-    {showInfoModal && (
-      <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center">
-        <div className="bg-white rounded-xl p-6 w-[95%] max-w-xl shadow-2xl">
-          <ClientInfoForm onClose={handleModalClose} />
+      {/* フッターメニュー */}
+      <div className="fixed bottom-0 left-0 w-full bg-white border-t shadow z-40">
+        <div className="max-w-screen-md mx-auto flex justify-around items-center py-3">
+          <a
+            href="https://chat.guaido.ai/room/yy3OIWXmJPw4u2RrpxzRwg"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <button className="bg-emerald-400 hover:bg-emerald-700 text-white px-5 py-2 rounded-full w-40 shadow-md">
+              🤖 AI相談
+            </button>
+          </a>
+          <Link href="/client-dashboard/invite">
+            <button className="bg-emerald-400 hover:bg-emerald-600 text-white px-5 py-2 rounded-full w-40 shadow-md">
+              📨 友達に紹介
+            </button>
+          </Link>
         </div>
       </div>
-    )}
 
-    {isSyncing && (
-      <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center">
-        <div className="bg-white rounded-xl p-6 w-[95%] max-w-xl shadow-2xl text-center">
-          <p className="text-xl font-bold text-emerald-600">🔄 クライアント情報を保存中です...</p>
-          <p className="text-sm mt-2 text-gray-600">少々お待ちください。</p>
+      {/* プロフィール登録モーダル */}
+      {showInfoModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-xl p-6 w-[90%] max-w-xl shadow-2xl">
+            <ClientInfoForm onClose={handleModalClose} />
+          </div>
         </div>
-      </div>
-    )}
-  </div>
-);
+      )}
 
+      {isSyncing && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-xl p-6 w-[90%] max-w-xl shadow-2xl text-center">
+            <p className="text-xl font-bold text-emerald-600">🔄 クライアント情報を保存中です...</p>
+            <p className="text-sm mt-2 text-gray-600">少々お待ちください。</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }

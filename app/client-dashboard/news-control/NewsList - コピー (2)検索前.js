@@ -22,6 +22,72 @@ export default function NewsControlPage() {
   const [page, setPage] = useState(0);
   const perPage = 20;
   const router = useRouter(); // ← この行を追加
+  const [userId, setUserId] = useState(null);
+  const [engaged, setEngaged] = useState({});
+  const [showHiddenLink, setShowHiddenLink] = useState(false); // 👈 追加
+
+useEffect(() => {
+  const fetchEngagement = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    setUserId(user.id);
+
+    const { data, error } = await supabase
+      .from("user_engagement_logs")
+      .select("article_id, action_type")
+      .eq("user_id", user.id);
+
+    if (error) {
+      console.warn("評価データ取得失敗:", error.message);
+      return;
+    }
+
+    const map = {};
+    data.forEach(({ article_id, action_type }) => {
+      if (!map[article_id]) map[article_id] = {};
+      map[article_id][action_type] = true;
+    });
+    setEngaged(map);
+  };
+
+  fetchEngagement();
+}, []);
+
+  const handleEngagement = async (articleId, actionType) => {
+  if (!userId) return;
+
+  const { error } = await supabase
+    .from("user_engagement_logs")
+    .upsert([
+      {
+        user_id: userId,
+        article_id: articleId,
+        action_type: actionType,
+        action_value: true,
+      },
+    ], { onConflict: "user_id,article_id,action_type" });
+
+  if (error) {
+    alert("保存に失敗しました");
+    console.error("評価保存エラー:", error.message);
+  } else {
+    alert(`${actionType === "like" ? "お気に入り" : "不要"}を保存しました`);
+  }
+};
+
+
+// ✅ 初期化でユーザーID取得
+useEffect(() => {
+  const getUser = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) setUserId(user.id);
+  };
+  getUser();
+}, []);
+
+// ✅ 評価保存処理
+
+
 
   const [keyword, setKeyword] = useState("");
   const [area, setArea] = useState("");
@@ -189,109 +255,137 @@ useEffect(() => {
           </button>
         ))}
       </div>
+      
+
+
+      <div className="flex justify-end mb-4">
+  <Link
+    href="/client-dashboard/hidden"
+    className="text-sm text-gray-500 underline hover:text-gray-700"
+  >
+    🚫 非表示にした記事一覧を見る
+  </Link>
+</div>
 
       {loading ? (
         <p>読み込み中...</p>
       ) : (
         <>
           <div className="space-y-4">
-            {articles.map((article) => (
-              <div
-                key={article.article_id}
-                className="p-4 border rounded-lg shadow-sm bg-white"
+  {articles.map((article) => {
+    // 🚫 不要にされた記事は表示しない
+    if (engaged[article.article_id]?.ignore) return null;
+
+    return (
+      <div
+        key={article.article_id}
+        className="p-4 border rounded-lg shadow-sm bg-white"
+      >
+        <div className="flex justify-between items-start">
+          <div>
+            <h2 className="text-lg font-semibold">
+              {article.structured_title || "（タイトル未定）"}
+              {engaged[article.article_id]?.like && (
+                <span className="text-yellow-400 text-xl ml-2">★</span>
+              )}
+            </h2>
+            <p className="text-sm text-gray-500">
+              {article.structured_agency || "機関不明"} /{" "}
+              {article.structured_prefecture || ""} /{" "}
+              {article.structured_application_period?.start || "未定"}
+            </p>
+            {article.structured_summary_extract && (
+              <p className="text-sm text-gray-700 mt-1">
+                {article.structured_summary_extract}
+              </p>
+            )}
+            {article.structured_amount_max && (
+              <p className="text-sm text-gray-600 mt-1">
+                💰 {article.structured_amount_max}
+              </p>
+            )}
+            <a
+              href={article.detail_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 underline text-sm mt-1 inline-block"
+            >
+              記事を見る
+            </a>
+
+            <div className="mt-2">
+              <button
+                onClick={async () => {
+                  const { data: { user } } = await supabase.auth.getUser();
+                  if (!user) {
+                    alert("ログインが必要です。");
+                    return;
+                  }
+                  const uid = user.id;
+                  const userEmail = user.email ?? null;
+                  const articleId = article.article_id;
+                  const articleTitle = article.structured_title ?? null;
+
+                  const { data: session, error: fetchError } = await supabase
+                    .from("chat_sessions")
+                    .select("id")
+                    .eq("user_id", uid)
+                    .eq("article_id", articleId)
+                    .single();
+
+                  let sessionId = session?.id;
+
+                  if (!sessionId) {
+                    const { data: inserted, error: insertError } = await supabase
+                      .from("chat_sessions")
+                      .insert([{
+                        user_id: uid,
+                        article_id: articleId,
+                        user_email: userEmail,
+                        article_title_snippet: articleTitle ?? "（タイトル未定）",
+                        status: "active",
+                      }])
+                      .select("id")
+                      .single();
+
+                    if (insertError || !inserted) {
+                      alert("セッションの作成に失敗しました。");
+                      return;
+                    }
+
+                    sessionId = inserted.id;
+                  }
+
+                  router.push(`/chat-module-sb?aid=${articleId}&uid=${uid}&sid=${sessionId}`);
+                }}
+                className="text-sm bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1 rounded flex items-center"
               >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h2 className="text-lg font-semibold">
-                      {article.structured_title || "（タイトル未定）"}
-                    </h2>
-                    <p className="text-sm text-gray-500">
-                      {article.structured_agency || "機関不明"} /{" "}
-                      {article.structured_prefecture || ""} /{" "}
-                      {article.structured_application_period?.start || "未定"}
-                    </p>
-                    {article.structured_summary_extract && (
-                      <p className="text-sm text-gray-700 mt-1">
-                        {article.structured_summary_extract}
-                      </p>
-                    )}
-                    {article.structured_amount_max && (
-                      <p className="text-sm text-gray-600 mt-1">
-                        💰 {article.structured_amount_max}
-                      </p>
-                    )}
-                    <a
-                      href={article.detail_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 underline text-sm mt-1 inline-block"
-                    >
-                      記事を見る
-                    </a>
-                    
-                    
-                    <div className="mt-2">
-                    <button
-  onClick={async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      alert("ログインが必要です。");
-      return;
-    }
-    const uid = user.id;
-const userEmail = user.email ?? null;
-const articleId = article.article_id;
-const articleTitle = article.structured_title ?? null;
+                💬 申請サポート
+              </button>
 
-// ✅ セッション取得または新規作成
-const { data: session, error: fetchError } = await supabase
-  .from("chat_sessions")
-  .select("id")
-  .eq("user_id", uid)
-  .eq("article_id", articleId)
-  .single();
+              <div className="mt-2 flex gap-3">
+                <button
+                  onClick={() => handleEngagement(article.article_id, "like")}
+                  className="text-sm px-3 py-1 border border-emerald-400 text-emerald-600 rounded hover:bg-emerald-50"
+                >
+                  👍 お気に入り
+                </button>
 
-let sessionId = session?.id;
-
-if (!sessionId) {
-  const { data: inserted, error: insertError } = await supabase
-    .from("chat_sessions")
-    .insert([
-      {
-        user_id: uid,
-        article_id: articleId,
-        user_email: userEmail,
-        article_title_snippet: articleTitle ?? "（タイトル未定）",
-        status: "active",
-      },
-    ])
-    .select("id")
-    .single();
-
-  if (insertError || !inserted) {
-    alert("セッションの作成に失敗しました。");
-    return;
-  }
-
-  sessionId = inserted.id;
-}
-
-    // ✅ sid を含めて遷移
-    router.push(`/chat-module-sb?aid=${articleId}&uid=${uid}&sid=${sessionId}`);
-  }}
-  className="text-sm bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1 rounded flex items-center"
->
-  💬 申請サポート
-</button>
+                <button
+                  onClick={() => handleEngagement(article.article_id, "ignore")}
+                  className="text-sm px-3 py-1 border border-red-400 text-red-600 rounded hover:bg-red-50"
+                >
+                  🚫 この情報は不要
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  })}
 </div>
 
-                  </div>
-                  
-                </div>
-                
-              </div>
-            ))}
-          </div>
           
 
           <div className="flex justify-between mt-6">

@@ -116,7 +116,7 @@ export default function ClientUpdatePage() {
   return (
     <div className="min-h-screen px-4 py-8 bg-gray-50">
       <div className="max-w-2xl mx-auto bg-white rounded-lg shadow p-6">
-        <h2 className="text-2xl font-bold mb-4 text-gray-800">登録内容の更新</h2>
+        <h2 className="text-2xl font-bold mb-4 text-gray-800">アカウント登録内容</h2>
         <form className="space-y-4">
           <Input label="会社名" value={company} onChange={setCompany} />
           <Input label="役職" value={position} onChange={setPosition} />
