@@ -5,5 +5,5 @@
 @tailwind utilities;
 
 html, body {
-  @apply text-gray-800 bg-white; /* ← 修正済 */
+  @apply text-gray-800 bg-gray-50;
 }

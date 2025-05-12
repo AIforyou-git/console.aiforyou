@@ -40,13 +40,11 @@ export default function InvitePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f5faff] px-2 sm:px-4 py-10">
-      <div className="w-full max-w-3xl mx-auto bg-white rounded-2xl shadow-lg border border-emerald-100 p-6 sm:p-8 space-y-8">
-        <div className="space-y-3">
-          <h1 className="text-2xl font-bold text-emerald-700 flex items-center gap-2">
-            📨 紹介URL
-          </h1>
-          <p className="text-sm text-gray-700 leading-relaxed">
+    <div className="min-h-screen bg-[#f5faff] px-4 py-10">
+       <div className="w-full px-1 sm:px-2 bg-white rounded-2xl shadow-lg border border-emerald-100 p-6 space-y-8">
+        <div className="space-y-2">
+          <h1 className="text-2xl font-bold text-emerald-700 flex items-center gap-2">📨 紹介URL</h1>
+          <p className="text-sm text-gray-700">
             このサービスが「使えそう」と思ったら、ぜひお知り合いにも教えてあげてください。<br />
             <span className="text-emerald-600 font-medium">
               AIforyou は “誰かのために役立つAI” を広めていきます。
@@ -57,9 +55,7 @@ export default function InvitePage() {
         {inviteUrl && (
           <div className="space-y-6">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-600">
-                あなた専用の紹介リンク
-              </label>
+              <label className="text-sm font-medium text-gray-600">あなた専用の紹介リンク</label>
               <div className="relative">
                 <input
                   type="text"
@@ -78,21 +74,23 @@ export default function InvitePage() {
 
             <div className="flex flex-wrap justify-center gap-4">
               <a href={`mailto:?subject=AIforyouのご紹介&body=このサービス、使えそうだったので共有します！%0A${inviteUrl}`}>
-                <button className="bg-indigo-500 hover:bg-indigo-600 text-white px-5 py-2.5 rounded-full shadow text-base">
+                <button className="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-full shadow">
                   ✉️ メールで送る
                 </button>
               </a>
+
               <a
                 href={`https://social-plugins.line.me/lineit/share?url=${inviteUrl}`}
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <button className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2.5 rounded-full shadow text-base">
+                <button className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-full shadow">
                   💬 LINEで送る
                 </button>
               </a>
+
               <a href={`sms:?body=AIforyouおすすめです！こちらからどうぞ：${inviteUrl}`}>
-                <button className="bg-pink-400 hover:bg-pink-500 text-white px-5 py-2.5 rounded-full shadow text-base">
+                <button className="bg-pink-400 hover:bg-pink-500 text-white px-4 py-2 rounded-full shadow">
                   📱 SMSで送る
                 </button>
               </a>
@@ -100,18 +98,16 @@ export default function InvitePage() {
           </div>
         )}
 
-        {message && (
-          <div className="pt-2 text-sm text-green-600 text-center">{message}</div>
-        )}
+        {message && <p className="text-sm text-green-600 pt-2">{message}</p>}
 
-        <div className="flex flex-col sm:flex-row gap-4 pt-6">
+        <div className="flex flex-col sm:flex-row gap-4 pt-8">
           <a href="/client-dashboard/referred" className="flex-1">
-            <button className="w-full bg-gray-600 hover:bg-gray-700 text-white px-5 py-2.5 rounded-full shadow text-base">
+            <button className="w-full bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-full shadow">
               📋 紹介した人の一覧を見る
             </button>
           </a>
           <a href="/client-dashboard" className="flex-1">
-            <button className="w-full bg-gray-300 hover:bg-gray-400 text-gray-800 px-5 py-2.5 rounded-full text-base">
+            <button className="w-full bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-full">
               🔙 ダッシュボードへ戻る
             </button>
           </a>

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -6,7 +5,7 @@ import { useAuth } from "@/lib/authProvider";
 import { supabase } from "@/lib/supabaseClient";
 import Link from "next/link";
 import ClientInfoForm from "./ClientInfoForm";
-import NewsControlPage from "./news-control"; // ← 変更ポイント
+import NewsList from "./news-control/NewsList";
 
 export default function ClientDashboard() {
   const { user, loading } = useAuth();
@@ -14,8 +13,6 @@ export default function ClientDashboard() {
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [clientName, setClientName] = useState("");
-  const [retryCount, setRetryCount] = useState(0);
-  const [fetching, setFetching] = useState(true);
 
   useEffect(() => {
     const loadClientData = async () => {
@@ -35,20 +32,16 @@ export default function ClientDashboard() {
         }
 
         setClientData(data);
+
         const name = data?.name || user.email?.split("@")[0];
         setClientName(name);
       } catch (err) {
         console.error("❌ クライアント情報取得エラー:", err);
-        if (retryCount < 3) {
-          setTimeout(() => setRetryCount((prev) => prev + 1), 1000);
-        }
-      } finally {
-        setFetching(false);
       }
     };
 
     if (!loading) loadClientData();
-  }, [user, loading, retryCount]);
+  }, [user, loading]);
 
   const handleModalClose = async () => {
     setShowInfoModal(false);
@@ -60,7 +53,9 @@ export default function ClientDashboard() {
         .from("users")
         .update({ status: "active", last_login: now })
         .eq("id", user.id);
+
       if (error) throw error;
+      console.log("✅ Supabase にユーザーステータスを同期しました");
     } catch (err) {
       console.error("❌ Supabase 同期通信失敗:", err.message);
     } finally {
@@ -68,48 +63,46 @@ export default function ClientDashboard() {
     }
   };
 
-  if (loading || fetching) {
-    return (
-      <div className="p-6 text-center text-gray-600">
-        🔄 クライアント情報を取得中です...
-      </div>
-    );
-  }
+  if (loading) return <div className="p-6">読み込み中...</div>;
 
   if (!user || user.role !== "client") {
     return <div className="p-6 text-red-500">アクセス権がありません。</div>;
   }
 
   return (
-    <div className="w-full px-1 sm:px-2 pt-2 pb-32 min-h-screen bg-white">
-      <h1 className="text-xl font-semibold text-center text-emerald-800 mb-4">
-         {/*  {clientName} 様の最新情報 */}
+    <div className="max-w-screen-xl mx-auto px- 2 pt-12 pb-32 relative bg-[#f5faff] min-h-screen">
+      <h1 className="text-sm text-center text-emerald-800 mb-2">
+        {clientName} 様の最新情報
       </h1>
 
-      <NewsControlPage clientData={clientData} />
+      <div className="bg-white rounded-2xl p-6 shadow-lg border border-emerald-100">
+        <NewsList />
+      </div>
 
+      {/* フッターメニュー */}
       <div className="fixed bottom-0 left-0 w-full bg-white border-t shadow z-40">
-        <div className="max-w-screen-md mx-auto flex justify-around items-center py-3 px-4 gap-4">
+        <div className="max-w-screen-md mx-auto flex justify-around items-center py-3">
           <a
             href="https://chat.guaido.ai/room/yy3OIWXmJPw4u2RrpxzRwg"
             target="_blank"
             rel="noopener noreferrer"
           >
-            <button className="bg-gradient-to-r from-emerald-400 to-green-500 hover:from-emerald-500 hover:to-green-600 text-white px-4 py-2 rounded-full w-36 shadow-lg text-sm">
+            <button className="bg-emerald-400 hover:bg-emerald-700 text-white px-5 py-2 rounded-full w-40 shadow-md">
               🤖 AI相談
             </button>
           </a>
           <Link href="/client-dashboard/invite">
-            <button className="bg-gradient-to-r from-blue-400 to-blue-500 hover:from-blue-500 hover:to-blue-600 text-white px-4 py-2 rounded-full w-36 shadow-lg text-sm">
+            <button className="bg-emerald-400 hover:bg-emerald-600 text-white px-5 py-2 rounded-full w-40 shadow-md">
               📨 友達に紹介
             </button>
           </Link>
         </div>
       </div>
 
+      {/* プロフィール登録モーダル */}
       {showInfoModal && (
         <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center">
-          <div className="bg-white rounded-xl p-6 w-[95%] max-w-xl shadow-2xl">
+          <div className="bg-white rounded-xl p-6 w-[90%] max-w-xl shadow-2xl">
             <ClientInfoForm onClose={handleModalClose} />
           </div>
         </div>
@@ -117,7 +110,7 @@ export default function ClientDashboard() {
 
       {isSyncing && (
         <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center">
-          <div className="bg-white rounded-xl p-6 w-[95%] max-w-xl shadow-2xl text-center">
+          <div className="bg-white rounded-xl p-6 w-[90%] max-w-xl shadow-2xl text-center">
             <p className="text-xl font-bold text-emerald-600">🔄 クライアント情報を保存中です...</p>
             <p className="text-sm mt-2 text-gray-600">少々お待ちください。</p>
           </div>
