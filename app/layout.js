@@ -55,10 +55,15 @@ export default function RootLayout({ children }) {
     <html lang="ja">
       <head>
         <link rel="icon" href="/favicon.ico" />
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#10b981" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <link rel="apple-touch-icon" href="/icons/icon-192.png" />
       </head>
       <body className="text-gray-800 bg-gray-50 min-h-screen">
         <ToastProvider>
-          <AuthProvider> {/* ✅ Supabase context を全体に適用 */}
+          <AuthProvider>
             <LayoutContent>{children}</LayoutContent>
           </AuthProvider>
         </ToastProvider>
