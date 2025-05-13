@@ -1,8 +1,15 @@
-/** @type {import('next').NextConfig} */
+// next.config.js
+const withPWA = require('next-pwa')({
+  dest: 'public',
+  register: true,
+  skipWaiting: true,
+});
+
 const nextConfig = {
   eslint: {
-    ignoreDuringBuilds: true, // ✅ Lintエラーを無視してビルド通す
+    ignoreDuringBuilds: true,
   },
+  // 他に設定があればここに追記
 };
 
-export default nextConfig;
+module.exports = withPWA(nextConfig);
