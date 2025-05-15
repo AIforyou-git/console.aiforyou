@@ -1,3 +1,5 @@
+// client-dashboard/news-control/hooks/useArticles.js
+
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import scrapingClient from "@/lib/supabaseScrapingClient";
@@ -50,13 +52,18 @@ export function useArticles({ page, keyword, sortBy, ascending, clientData }) {
           structured_application_period,
           structured_summary_extract,
           structured_amount_max,
-          detail_url,
-          published_at
+          detail_url
         `, { count: 'exact' });
 
       if (clientData?.region_prefecture) {
         query = query.in("structured_prefecture", [clientData.region_prefecture, "全国"]);
       }
+
+      // 業種フィルタは一旦無効化
+// if (clientData?.industry) {
+//   const safeIndustry = clientData.industry.trim();
+//   query = query.or(`structured_title.ilike.%${safeIndustry}%,structured_summary_extract.ilike.%${safeIndustry}%`);
+// }
 
       if (keyword === "お気に入り") {
         const { data: likes } = await supabase

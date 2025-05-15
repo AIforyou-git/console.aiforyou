@@ -172,6 +172,10 @@ admin_memo: formData.admin_memo,
             />
           </label>
           {/* クライアント表示・配信制御フラグ */}
+          <p className="text-sm text-gray-500 mb-2">
+  ※通常は「クライアントに公開」と「本日配信対象に含める」を同時にONにしてください。<br />
+  表示のみ・配信のみといった片方だけの設定は、原則として使用しません。
+</p>
 <label className="block mt-4">
   <span className="text-gray-700">クライアントに公開</span>
   <input

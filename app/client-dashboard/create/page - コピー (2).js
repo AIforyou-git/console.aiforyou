@@ -37,7 +37,6 @@ export default function ClientUpdatePage() {
   const [memo, setMemo] = useState("");
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
-  const [matchByCity, setMatchByCity] = useState(true); // ✅
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -67,7 +66,6 @@ export default function ClientUpdatePage() {
           setRegionCity(clientData.region_city ?? "");
           setIndustry((clientData.industry ?? "").trim());
           setMemo(clientData.memo ?? "");
-          setMatchByCity(clientData.match_by_city ?? true); // ✅
         }
 
         setEmail(userData.email ?? "");
@@ -103,21 +101,8 @@ export default function ClientUpdatePage() {
     fetchCities();
   }, [regionPrefecture]);
 
-  useEffect(() => {
-    if (message) {
-      const timer = setTimeout(() => {
-        setMessage("");
-      }, 4000);
-      return () => clearTimeout(timer);
-    }
-  }, [message]);
-
   const registerClient = async () => {
     if (!user?.id) return;
-    if (matchByCity && !regionCity) {
-      alert("市区町村の選択が必要です");
-      return;
-    }
 
     try {
       const now = new Date().toISOString();
@@ -133,7 +118,6 @@ export default function ClientUpdatePage() {
           region_city: regionCity,
           industry,
           memo,
-          match_by_city: matchByCity, // ✅
           profile_completed: true,
           updated_at: now,
         }, {
@@ -141,12 +125,22 @@ export default function ClientUpdatePage() {
         });
 
       if (error) throw error;
+
       setMessage("✅ 登録内容を更新しました！");
     } catch (error) {
       console.error("更新失敗:", (error instanceof Error ? error.message : error));
       setMessage("❌ 登録内容の更新に失敗しました");
     }
   };
+  useEffect(() => {
+  if (message) {
+    const timer = setTimeout(() => {
+      setMessage("");
+    }, 4000); // 4秒後に非表示
+
+    return () => clearTimeout(timer); // クリーンアップ
+  }
+}, [message]);
 
   const effectiveIndustries = industry && !INDUSTRIES.includes(industry)
     ? [industry, ...INDUSTRIES]
@@ -161,40 +155,17 @@ export default function ClientUpdatePage() {
           <Input label="役職" value={position} onChange={setPosition} />
           <Input label="お名前" value={name} onChange={setName} required />
           <Input label="メールアドレス" value={email} disabled />
-
           <Select
-            label="都道府県"
-            value={regionPrefecture}
-            onChange={(val) => {
-              setRegionPrefecture(val);
-              setRegionCity("");
-            }}
-            options={PREFECTURES}
-            required
-            disabled={matchByCity}
-          />
-
-          <Select
-            label="市区町村"
-            value={regionCity}
-            onChange={setRegionCity}
-            options={cityOptions}
-            required={matchByCity}
-          />
-
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id="match_by_city"
-              checked={matchByCity}
-              onChange={(e) => setMatchByCity(e.target.checked)}
-              className="h-4 w-4"
-            />
-            <label htmlFor="match_by_city" className="text-sm text-gray-700">
-              市区町村まで絞り込む（ON：厳密配信／OFF：都道府県単位）
-            </label>
-          </div>
-
+  label="都道府県"
+  value={regionPrefecture}
+  onChange={(val) => {
+    setRegionPrefecture(val);
+    setRegionCity(""); // 🔽 市区町村をリセット
+  }}
+  options={PREFECTURES}
+  required
+/>
+          <Select label="市区町村" value={regionCity} onChange={setRegionCity} options={cityOptions} />
           <Select label="業種" value={industry} onChange={setIndustry} options={effectiveIndustries} />
           <Textarea label="メモ（任意）" value={memo} onChange={setMemo} />
 
@@ -234,7 +205,7 @@ function Input({ label, value, onChange, required = false, disabled = false }) {
   );
 }
 
-function Select({ label, value, onChange, options, required = false, disabled = false }) {
+function Select({ label, value, onChange, options, required = false }) {
   return (
     <div>
       <label className="block mb-1 text-sm font-medium">{label}:</label>
@@ -242,7 +213,6 @@ function Select({ label, value, onChange, options, required = false, disabled = 
         value={value}
         onChange={(e) => onChange?.(e.target.value)}
         required={required}
-        disabled={disabled}
         className="w-full border border-gray-300 rounded px-3 py-2"
       >
         <option value="">選択してください</option>

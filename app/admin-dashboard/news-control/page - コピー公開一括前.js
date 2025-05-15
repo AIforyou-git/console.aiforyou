@@ -3,12 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import scrapingClient from '@/lib/supabaseScrapingClient';
 import Link from 'next/link';
-import BulkPublishButton from './BulkPublishButton';
 
 export default function NewsControlPage() {
   const [page, setPage] = useState(1);
   const [articles, setArticles] = useState([]);
-  const [selectedIds, setSelectedIds] = useState([]);
   const limit = 50;
   const [search, setSearch] = useState('');
 
@@ -16,32 +14,26 @@ export default function NewsControlPage() {
     a.structured_title?.toLowerCase().includes(search.toLowerCase())
   );
 
-  const toggleSelect = (id) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
-    );
-  };
-
   useEffect(() => {
     const fetchArticles = async () => {
       const baseQuery = scrapingClient
-        .from('jnet_articles_public')
-        .select(`
-          article_id,
-          detail_url,
-          structured_title,
-          structured_agency,
-          structured_prefecture,
-          structured_city,
-          structured_application_period,
-          structured_industry_keywords,
-          structured_grant_type,
-          structured_purpose,
-          visible,
-          send_today,
-          structured_at
-        `)
-        .order('structured_at', { ascending: false });
+  .from('jnet_articles_public')
+  .select(`
+    article_id,
+    detail_url,
+    structured_title,
+    structured_agency,
+    structured_prefecture,
+    structured_city,
+    structured_application_period,
+    structured_industry_keywords,
+    structured_grant_type,
+    structured_purpose,
+    visible,
+    send_today,
+    structured_at
+  `)
+  .order('structured_at', { ascending: false }); // ✅ 構造化時刻で新しい順に並べる
 
       const query = search
         ? baseQuery.ilike('structured_title', `%${search}%`)
@@ -74,18 +66,9 @@ export default function NewsControlPage() {
         />
       </div>
 
-      <BulkPublishButton
-        selectedIds={selectedIds}
-        onSuccess={() => {
-          setSelectedIds([]);
-          window.location.reload();
-        }}
-      />
-
       <table className="table-auto w-full text-sm border">
         <thead>
           <tr className="bg-gray-100">
-            <th className="border px-2 py-1">選択</th>
             <th className="border px-2 py-1">ID</th>
             <th className="border px-2 py-1">タイトル</th>
             <th className="border px-2 py-1">募集機関</th>
@@ -100,13 +83,6 @@ export default function NewsControlPage() {
         <tbody>
           {filteredArticles.map((a) => (
             <tr key={a.article_id}>
-              <td className="border px-2 py-1 text-center">
-                <input
-                  type="checkbox"
-                  checked={selectedIds.includes(a.article_id)}
-                  onChange={() => toggleSelect(a.article_id)}
-                />
-              </td>
               <td className="border px-2 py-1 text-center text-xs text-gray-600">
                 {a.article_id}
               </td>
@@ -147,10 +123,10 @@ export default function NewsControlPage() {
                       const { error } = await scrapingClient
                         .from('jnet_articles_public')
                         .update({
-                          visible: true,
-                          send_today: true,
-                          published_at: new Date().toISOString()
-                        })
+  visible: true,
+  send_today: true,
+  published_at: new Date().toISOString() // ✅ 公開時刻も同時に記録
+})
                         .eq('article_id', a.article_id);
 
                       if (error) {

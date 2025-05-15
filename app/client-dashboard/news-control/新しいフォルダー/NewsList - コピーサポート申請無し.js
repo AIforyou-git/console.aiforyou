@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from "react";
 import scrapingClient from '@/lib/supabaseScrapingClient'; // ✅ 共通クライアントを使用
-import Link from "next/link";
-import { supabase } from "@/lib/supabaseClient";
 
 
 

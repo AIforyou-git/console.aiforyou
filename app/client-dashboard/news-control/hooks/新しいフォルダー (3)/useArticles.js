@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import scrapingClient from "@/lib/supabaseScrapingClient";
 
-export function useArticles({ page, keyword, sortBy, ascending, clientData }) {
+export function useArticles({ page, keyword, sortBy, ascending, filterParams }) {
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
@@ -47,6 +47,7 @@ export function useArticles({ page, keyword, sortBy, ascending, clientData }) {
           structured_title,
           structured_agency,
           structured_prefecture,
+          structured_city,
           structured_application_period,
           structured_summary_extract,
           structured_amount_max,
@@ -54,10 +55,16 @@ export function useArticles({ page, keyword, sortBy, ascending, clientData }) {
           published_at
         `, { count: 'exact' });
 
-      if (clientData?.region_prefecture) {
-        query = query.in("structured_prefecture", [clientData.region_prefecture, "全国"]);
+      // 地域条件の分岐
+      if (filterParams?.useCityMatch) {
+        query = query
+          .eq("structured_city", filterParams.region_city)
+          .in("structured_prefecture", filterParams.prefectureList);
+      } else if (filterParams?.prefectureList?.length) {
+        query = query.in("structured_prefecture", filterParams.prefectureList);
       }
 
+      // お気に入り処理
       if (keyword === "お気に入り") {
         const { data: likes } = await supabase
           .from("user_engagement_logs")
@@ -83,7 +90,7 @@ export function useArticles({ page, keyword, sortBy, ascending, clientData }) {
     };
 
     fetchArticles();
-  }, [page, keyword, sortBy, ascending, clientData]);
+  }, [page, keyword, sortBy, ascending, filterParams]);
 
   return { articles, loading, engaged, userId, totalCount };
 }

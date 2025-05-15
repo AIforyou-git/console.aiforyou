@@ -32,10 +32,10 @@ export async function GET() {
 
     if (userError) throw new Error('ユーザー取得エラー: ' + userError.message);
 
-    // ③ クライアント情報の取得（地域・業種・市区町村・自動送信）
+    // ③ クライアント情報の取得（地域・業種・市区町村）
     const { data: clients, error: clientError } = await supabaseAdmin
       .from('clients')
-      .select('uid, region_prefecture, region_city, industry, match_by_city, auto_mail_enabled');
+      .select('uid, region_prefecture, region_city, industry, match_by_city');
 
     if (clientError) throw new Error('クライアント取得エラー: ' + clientError.message);
 
@@ -55,7 +55,6 @@ export async function GET() {
 
       const client = clients.find(c => c.uid === user.id);
       if (!client) continue;
-      if (!client.auto_mail_enabled) continue; // ✅ 自動送信ONのクライアントのみ対象
 
       const matched_articles = articles.filter(article => {
         const alreadySent = sentSet.has(`${user.id}_${article.article_id}`);

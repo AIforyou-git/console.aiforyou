@@ -1,3 +1,5 @@
+// client-dashboard/news-control/components/ArticleCard.jsx
+
 "use client";
 
 import { supabase } from "@/lib/supabaseClient";
@@ -96,20 +98,14 @@ export default function ArticleCard({ article, userId, engaged = {}, onEngage })
         </button>
 
         <button
-          onClick={() => {
-            onEngage(article.article_id, "like");
-            alert("お気に入りを保存しました");
-          }}
+          onClick={() => onEngage(article.article_id, "like")}
           className="text-sm px-3 py-1 border border-emerald-400 text-emerald-600 rounded hover:bg-emerald-50"
         >
           👍 お気に入り
         </button>
 
         <button
-          onClick={() => {
-            onEngage(article.article_id, "ignore");
-            alert("この情報を非表示にしました");
-          }}
+          onClick={() => onEngage(article.article_id, "ignore")}
           className="text-sm px-3 py-1 border border-red-400 text-red-600 rounded hover:bg-red-50"
         >
           🚫 この情報は不要

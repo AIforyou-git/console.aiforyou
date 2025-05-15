@@ -5,7 +5,6 @@ import { useAuth } from "@/lib/authProvider";
 import { supabase } from "@/lib/supabaseClient";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
-import FooterAdminDashboard from "@/components/Footer/FooterAdminDashboard";
 
 export default function AdminDashboard() {
   const { user, loading } = useAuth();

@@ -1,5 +1,4 @@
 // app/api/client/get-profile/route.js
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export async function GET(req) {
   const supabase = createClient();

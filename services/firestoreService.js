@@ -1,4 +1,4 @@
-import { firebaseAuth } from "@/lib/firebase";  // 🔥 修正
+// 🔥 修正
 import { db } from "@/lib/firebase";  // 🔥 追加
 import { doc, setDoc, updateDoc, getDoc, getDocs, collection, query, where } from "firebase/firestore";
 

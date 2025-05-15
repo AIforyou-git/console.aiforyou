@@ -1,32 +1,42 @@
-// client-dashboard/news-control/index.js
-
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useArticles } from "./hooks/useArticles";
+import { getFilterParamsForClient } from "./hooks/useArticles_0";
 import ArticleFilters from "./components/ArticleFilters";
 import ArticleCard from "./components/ArticleCard";
 import PaginationControls from "./components/PaginationControls";
 import { supabase } from "@/lib/supabaseClient";
 
-export default function NewsControlPage({ clientData }) {
+export default function NewsControlPage() {
   const [page, setPage] = useState(0);
   const [keyword, setKeyword] = useState("");
   const [area, setArea] = useState("");
   const [sortBy, setSortBy] = useState("published_at");
-  
   const [ascending, setAscending] = useState(false);
   const [showSearchOptions, setShowSearchOptions] = useState(false);
-
   const [showPublishedAt, setShowPublishedAt] = useState(false);
+  const [filterParams, setFilterParams] = useState(null);
+
   const isProd = process.env.NODE_ENV === "production";
+
+  useEffect(() => {
+    let ignore = false;
+    (async () => {
+      const params = await getFilterParamsForClient();
+      if (!ignore) setFilterParams(params);
+    })();
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   const { articles, loading, engaged, userId, totalCount } = useArticles({
     page,
     keyword,
     sortBy,
     ascending,
-    clientData: clientData || {},
+    filterParams: filterParams || {},
   });
 
   const handleEngage = async (articleId, actionType) => {
@@ -55,7 +65,7 @@ export default function NewsControlPage({ clientData }) {
   return (
     <div className="pt-4 pb-4 px-2 sm:px-4 space-y-2">
       <h1 className="text-xl font-bold text-emerald-800 flex items-center gap-2">
-        📢 {clientData?.name || "○○"}様向けの支援情報
+        📢 {filterParams?.region_prefecture || "○○"}様向けの支援情報
         <span className="text-sm text-gray-500">（{totalCount} 件）</span>
       </h1>
 

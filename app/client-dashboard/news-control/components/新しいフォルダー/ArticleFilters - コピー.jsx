@@ -1,3 +1,5 @@
+// client-dashboard/news-control/components/ArticleFilters.jsx
+
 "use client";
 
 import React from "react";

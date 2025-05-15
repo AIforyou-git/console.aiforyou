@@ -1,5 +1,4 @@
 // app/api/client/update-last-login/route.js
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export async function POST() {
   const supabase = createClient();

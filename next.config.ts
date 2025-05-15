@@ -1,15 +1,18 @@
-// next.config.js
-const withPWA = require('next-pwa')({
-  dest: 'public',
-  register: true,
-  skipWaiting: true,
-});
+import type { NextConfig } from 'next';
 
-const nextConfig = {
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  // 他に設定があればここに追記
+const isTurbopack = process.env.TURBOPACK === 'true';
+
+const nextConfig: NextConfig = {
+  reactStrictMode: true,
+
+  ...(isTurbopack
+    ? {}
+    : {
+        webpack(config, options) {
+          // ここに必要なWebpackのカスタムがあれば書いてOK
+          return config;
+        },
+      }),
 };
 
-module.exports = withPWA(nextConfig);
+export default nextConfig;

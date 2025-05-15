@@ -32,28 +32,6 @@ export default function EmailSettings() {
 
   const handleSave = async () => {
     setLoading(true);
-
-    // ✅ 市区町村チェックがONのとき、登録されていなければブロック
-    if (matchByCity) {
-      const { data, error } = await supabase
-        .from("clients")
-        .select("region_city")
-        .eq("uid", userId)
-        .single();
-
-      if (error) {
-        setLoading(false);
-        alert("市区町村の確認に失敗しました：" + error.message);
-        return;
-      }
-
-      if (!data?.region_city || data.region_city.trim() === "") {
-        setLoading(false);
-        alert("市区町村を配信条件にするには、市区町村情報の登録が必要です。プロフィールから設定してください。");
-        return;
-      }
-    }
-
     const { error } = await supabase
       .from("clients")
       .update({
@@ -97,7 +75,7 @@ export default function EmailSettings() {
           <input type="email" className="w-full p-2 border rounded" placeholder="例: cc2@example.com" />
         </div>
 
-        {/* ✅ 市区町村マッチスイッチ 
+        {/* ✅ 市区町村マッチスイッチ */}
         <div className="flex items-center space-x-2">
           <input
             type="checkbox"
@@ -109,7 +87,7 @@ export default function EmailSettings() {
           <label htmlFor="match_by_city" className="text-sm text-gray-700">
             市区町村まで配信対象を絞り込む（ONで厳密／OFFで都道府県単位）
           </label>
-        </div>*/}
+        </div>
 
         <button
           type="submit"

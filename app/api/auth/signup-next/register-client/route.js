@@ -1,6 +1,5 @@
 // ✅ signup-next/register-client/route.js
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { nanoid } from "nanoid";
 
 // 紹介URL用コード生成関数
 function generateShortReferralCode() {
