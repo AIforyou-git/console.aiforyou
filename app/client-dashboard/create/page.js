@@ -113,40 +113,50 @@ export default function ClientUpdatePage() {
   }, [message]);
 
   const registerClient = async () => {
-    if (!user?.id) return;
-    if (matchByCity && !regionCity) {
-      alert("市区町村の選択が必要です");
-      return;
+  if (!user?.id) return;
+  if (matchByCity && !regionCity) {
+    alert("市区町村の選択が必要です");
+    return;
+  }
+
+  try {
+    const now = new Date().toISOString();
+
+    // ✅ region_full を構成
+    let regionFull = regionPrefecture || "";
+    if (regionPrefecture.includes("、") || regionPrefecture.includes(",") || regionPrefecture.includes("，")) {
+      regionFull = "全国"; // 都道府県が複数の場合は全国扱い
+    } else if (regionCity && regionCity.trim() !== "") {
+      regionFull = regionPrefecture + regionCity;
     }
 
-    try {
-      const now = new Date().toISOString();
+    const { error } = await supabase
+      .from("clients")
+      .upsert({
+        uid: user.id,
+        company,
+        position,
+        name,
+        region_prefecture: regionPrefecture,
+        region_city: regionCity,
+        region_full: regionFull, // ✅ 追加保存
+        industry,
+        memo,
+        match_by_city: matchByCity,
+        profile_completed: true,
+        updated_at: now,
+      }, {
+        onConflict: "uid",
+      });
 
-      const { error } = await supabase
-        .from("clients")
-        .upsert({
-          uid: user.id,
-          company,
-          position,
-          name,
-          region_prefecture: regionPrefecture,
-          region_city: regionCity,
-          industry,
-          memo,
-          match_by_city: matchByCity, // ✅
-          profile_completed: true,
-          updated_at: now,
-        }, {
-          onConflict: "uid",
-        });
+    if (error) throw error;
+    setMessage("✅ 登録内容を更新しました！");
+  } catch (error) {
+    console.error("更新失敗:", (error instanceof Error ? error.message : error));
+    setMessage("❌ 登録内容の更新に失敗しました");
+  }
+};
 
-      if (error) throw error;
-      setMessage("✅ 登録内容を更新しました！");
-    } catch (error) {
-      console.error("更新失敗:", (error instanceof Error ? error.message : error));
-      setMessage("❌ 登録内容の更新に失敗しました");
-    }
-  };
 
   const effectiveIndustries = industry && !INDUSTRIES.includes(industry)
     ? [industry, ...INDUSTRIES]
@@ -163,16 +173,17 @@ export default function ClientUpdatePage() {
           <Input label="メールアドレス" value={email} disabled />
 
           <Select
-            label="都道府県"
-            value={regionPrefecture}
-            onChange={(val) => {
-              setRegionPrefecture(val);
-              setRegionCity("");
-            }}
-            options={PREFECTURES}
-            required
-            disabled={matchByCity}
-          />
+  label="都道府県"
+  value={regionPrefecture}
+  onChange={(val) => {
+    setRegionPrefecture(val);
+    setRegionCity("");
+  }}
+  options={PREFECTURES}
+  required
+  disabled={matchByCity}
+/>
+
 
           <Select
             label="市区町村"
@@ -235,12 +246,20 @@ function Input({ label, value, onChange, required = false, disabled = false }) {
 }
 
 function Select({ label, value, onChange, options, required = false, disabled = false }) {
+  const handleMouseDown = (e) => {
+    if (label === "都道府県" && !window._hasWarnedPrefectureChange) {
+      alert("⚠️ 都道府県を変更すると、1ヶ月間は再変更できません。慎重に選択してください。");
+      window._hasWarnedPrefectureChange = true;
+    }
+  };
+
   return (
     <div>
       <label className="block mb-1 text-sm font-medium">{label}:</label>
       <select
         value={value}
         onChange={(e) => onChange?.(e.target.value)}
+        onMouseDown={handleMouseDown} // ✅ 追加ここだけ
         required={required}
         disabled={disabled}
         className="w-full border border-gray-300 rounded px-3 py-2"

@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import scrapingClient from '@/lib/supabaseScrapingClient';
 import Link from 'next/link';
 import BulkPublishButton from './BulkPublishButton';
-import { handlePublishAndSync } from '@/lib/news/handlePublishAndSync';
 
 export default function NewsControlPage() {
   const [page, setPage] = useState(1);
@@ -12,7 +11,6 @@ export default function NewsControlPage() {
   const [selectedIds, setSelectedIds] = useState([]);
   const limit = 50;
   const [search, setSearch] = useState('');
-  const [loading, setLoading] = useState(false); // ← 🔧 上部 useState 群に追加
 
   const filteredArticles = articles.filter((a) =>
     a.structured_title?.toLowerCase().includes(search.toLowerCase())
@@ -21,20 +19,6 @@ export default function NewsControlPage() {
   const toggleSelect = (id) => {
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
-    );
-  };
-  // ✅ 公開済みを除いた記事を全選択 or 全解除する関数
-  const toggleSelectAll = () => {
-    const selectableIds = filteredArticles
-      .filter((a) => !(a.visible && a.send_today))
-      .map((a) => a.article_id);
-
-    const allSelected = selectableIds.every((id) => selectedIds.includes(id));
-
-    setSelectedIds((prev) =>
-      allSelected
-        ? prev.filter((id) => !selectableIds.includes(id)) // 全解除
-        : [...new Set([...prev, ...selectableIds])] // 全選択
     );
   };
 
@@ -57,8 +41,6 @@ export default function NewsControlPage() {
           send_today,
           structured_at
         `)
-        .order('visible', { ascending: true })
-        .order('send_today', { ascending: true })
         .order('structured_at', { ascending: false });
 
       const query = search
@@ -93,37 +75,17 @@ export default function NewsControlPage() {
       </div>
 
       <BulkPublishButton
-  selectedIds={selectedIds}
-  onSuccess={() => {
-    setSelectedIds([]);
-    window.location.reload();
-  }}
-  setLoading={setLoading}
-/>
-
-{loading && (
-  <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-    <div className="bg-white p-6 rounded shadow text-center">
-      <p className="text-lg font-semibold mb-2">公開処理中です…</p>
-      <p className="text-sm text-gray-600">しばらくお待ちください</p>
-    </div>
-  </div>
-)}
+        selectedIds={selectedIds}
+        onSuccess={() => {
+          setSelectedIds([]);
+          window.location.reload();
+        }}
+      />
 
       <table className="table-auto w-full text-sm border">
         <thead>
-  <tr className="bg-gray-100">
-    <th className="border px-2 py-1">
-      <input
-        type="checkbox"
-        onChange={toggleSelectAll}
-        checked={
-          filteredArticles
-            .filter((a) => !(a.visible && a.send_today))
-            .every((a) => selectedIds.includes(a.article_id))
-        }
-      />
-    </th>
+          <tr className="bg-gray-100">
+            <th className="border px-2 py-1">選択</th>
             <th className="border px-2 py-1">ID</th>
             <th className="border px-2 py-1">タイトル</th>
             <th className="border px-2 py-1">募集機関</th>
@@ -143,7 +105,6 @@ export default function NewsControlPage() {
                   type="checkbox"
                   checked={selectedIds.includes(a.article_id)}
                   onChange={() => toggleSelect(a.article_id)}
-                  disabled={a.visible && a.send_today} // ✅ ここを追加！
                 />
               </td>
               <td className="border px-2 py-1 text-center text-xs text-gray-600">
@@ -183,11 +144,19 @@ export default function NewsControlPage() {
                 {!(a.visible && a.send_today) && (
                   <button
                     onClick={async () => {
-                      const result = await handlePublishAndSync(a.article_id);
-                      if (!result.success) {
-                        alert(`${result.step === 'publish' ? '公開' : 'UI同期'}処理に失敗：${result.error.message}`);
+                      const { error } = await scrapingClient
+                        .from('jnet_articles_public')
+                        .update({
+                          visible: true,
+                          send_today: true,
+                          published_at: new Date().toISOString()
+                        })
+                        .eq('article_id', a.article_id);
+
+                      if (error) {
+                        alert('公開失敗: ' + error.message);
                       } else {
-                        alert('公開＋UIキャッシュ同期 完了');
+                        alert('公開設定を更新しました');
                         window.location.reload();
                       }
                     }}

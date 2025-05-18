@@ -53,7 +53,35 @@ export default function ArticleCard({ article, userId, engaged = {}, onEngage })
   if (engaged.ignore) return null;
 
   return (
-    <div className="p-4 bg-white border border-gray-200 rounded-2xl shadow-md space-y-2">
+  <div className="relative p-4 bg-white border border-gray-200 rounded-2xl shadow-md space-y-2">
+    {(() => {
+  const today = new Date();
+  const published = new Date(article.published_at);
+
+  const isToday =
+    published.getFullYear() === today.getFullYear() &&
+    published.getMonth() === today.getMonth() &&
+    published.getDate() === today.getDate();
+
+  const diffDays = Math.floor((today - published) / (1000 * 60 * 60 * 24));
+  const isRecent = diffDays >= 1 && diffDays < 7;
+
+  if (isToday) {
+    return (
+      <div className="absolute top-2 right-2 text-white text-xs px-4 py-1 rounded-full shadow-xl font-bold animate-bounce bg-gradient-to-r from-pink-400 via-fuchsia-500 to-rose-400 ring-2 ring-yellow-300 ring-offset-2 border-2 border-white">
+        👑 本日公開！
+      </div>
+    );
+  } else if (isRecent) {
+    return (
+      <div className="absolute top-2 right-2 text-blue-700 bg-blue-100 text-xs px-3 py-1 rounded-full shadow-sm font-semibold border border-blue-300">
+        🆕 New
+      </div>
+    );
+  } else {
+    return null;
+  }
+})()}
       <h2 className="text-lg font-semibold text-emerald-700">
         {article.structured_title || "（タイトル未定）"}
         {engaged.like && (

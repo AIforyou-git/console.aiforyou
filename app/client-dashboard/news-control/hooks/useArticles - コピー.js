@@ -42,8 +42,7 @@ export function useArticles({ page, keyword, sortBy, ascending, clientData }) {
 
       let query = scrapingClient
         .from("jnet_articles_public")
-        .select(
-          `
+        .select(`
           article_id,
           structured_title,
           structured_agency,
@@ -53,15 +52,9 @@ export function useArticles({ page, keyword, sortBy, ascending, clientData }) {
           structured_amount_max,
           detail_url,
           published_at
-        `,
-          { count: "exact" }
-        );
+        `, { count: 'exact' });
 
-      if (clientData?.match_by_city && clientData?.region_full) {
-        // ✅ 市区町村まで絞り込む（完全一致）＋ 全国
-        query = query.in("structured_area_full", [clientData.region_full, "全国"]);
-      } else if (clientData?.region_prefecture) {
-        // ✅ 都道府県レベル表示（全市区含む）＋ 全国
+      if (clientData?.region_prefecture) {
         query = query.in("structured_prefecture", [clientData.region_prefecture, "全国"]);
       }
 
@@ -77,9 +70,7 @@ export function useArticles({ page, keyword, sortBy, ascending, clientData }) {
         query = query.in("article_id", likedIds.length ? likedIds : [-1]);
       } else if (keyword) {
         const safeKeyword = keyword.trim();
-        query = query.or(
-          `structured_title.ilike.%${safeKeyword}%,structured_summary_extract.ilike.%${safeKeyword}%,structured_agency.ilike.%${safeKeyword}%,structured_prefecture.ilike.%${safeKeyword}%`
-        );
+        query = query.or(`structured_title.ilike.%${safeKeyword}%,structured_summary_extract.ilike.%${safeKeyword}%,structured_agency.ilike.%${safeKeyword}%,structured_prefecture.ilike.%${safeKeyword}%`);
       }
 
       query = query.order(sortBy, { ascending });
