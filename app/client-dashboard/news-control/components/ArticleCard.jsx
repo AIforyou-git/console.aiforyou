@@ -56,13 +56,14 @@ export default function ArticleCard({ article, userId, engaged = {}, onEngage })
   <div className="relative p-4 bg-white border border-gray-200 rounded-2xl shadow-md space-y-2">
     {(() => {
   const today = new Date();
-  const published = new Date(article.published_at);
 
-  const isToday =
-    published.getFullYear() === today.getFullYear() &&
-    published.getMonth() === today.getMonth() &&
-    published.getDate() === today.getDate();
+// JST補正（+9時間）
+const published = new Date(new Date(article.published_at).getTime() + 9 * 60 * 60 * 1000);
 
+const isToday = published.getDate() === today.getDate()
+  && published.getMonth() === today.getMonth()
+  && published.getFullYear() === today.getFullYear();
+  
   const diffDays = Math.floor((today - published) / (1000 * 60 * 60 * 24));
   const isRecent = diffDays >= 1 && diffDays < 7;
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import scrapingSupabase from "@/lib/supabaseScrapingClient";
 import { useAuth } from "@/lib/authProvider";
 import Link from "next/link";
 
@@ -149,8 +150,53 @@ export default function ClientUpdatePage() {
         onConflict: "uid",
       });
 
-    if (error) throw error;
+        if (error) throw error;
+
+    // 🟢 client_daily_matches に保存
+   const today = new Date().toISOString().slice(0, 10);
+   const todayISO = new Date().toISOString().slice(0, 10); // 例: "2025-05-19"
+
+// regionFull は既に定義済なので再定義せず使用する
+    if (regionPrefecture.includes("、") || regionPrefecture.includes(",") || regionPrefecture.includes("，")) {
+      regionFull = "全国";
+    } else if (regionCity && regionCity.trim() !== "") {
+      regionFull = regionPrefecture + regionCity;
+    }
+
+    const { data: articles, error: articleError } = await scrapingSupabase
+  .from("jnet_articles_public")
+  .select("article_id")
+  .eq("send_today", true)
+  .eq("visible", true)
+  .gte("published_at", `${todayISO}T00:00:00`) // ✅ 本日以降のみに限定
+  .lte("published_at", `${todayISO}T23:59:59`) // ✅ 本日までに限定
+  .in("structured_area_full", matchByCity ? [regionFull, "全国"] : [regionPrefecture, "全国"]);
+
+if (articleError) {
+  console.error("マッチ記事取得エラー:", articleError.message);
+}
+
+const matchedIds = (articles || []).map(a => a.article_id); // ✅ 空でも対応
+
+const { error: upsertError } = await supabase
+  .from("client_daily_matches")
+  .upsert([
+    {
+      user_id: user.id,
+      target_date: today,
+      matched_articles: matchedIds,
+      calculated_at: new Date(),
+      source: "client"
+    }
+  ], { onConflict: ['user_id', 'target_date'] });
+
+if (upsertError) {
+  console.error("マッチ保存失敗:", upsertError.message);
+}
+
+
     setMessage("✅ 登録内容を更新しました！");
+
   } catch (error) {
     console.error("更新失敗:", (error instanceof Error ? error.message : error));
     setMessage("❌ 登録内容の更新に失敗しました");

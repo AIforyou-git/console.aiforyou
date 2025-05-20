@@ -1,28 +1,33 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+//import React, { useEffect, useState } from 'react';
 
 export default function NewsSendPage() {
   const [targets, setTargets] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [results, setResults] = useState([]);
+  const [articleMap, setArticleMap] = useState({}); // ✅ 記事ID → 詳細のマップ
 
-  useEffect(() => {
-    const fetchTargets = async () => {
-      try {
-        const res = await fetch('/api/news-send/get-today-targets');
-        const data = await res.json();
-        setTargets(data);
-      } catch (err) {
-        console.error('配信対象取得エラー:', err);
-      } finally {
-        setLoading(false);
+  const handleForceRecalc = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/admin/force-calc-matching', {
+        method: 'POST',
+      });
+      if (!res.ok) {
+        console.error('マッチング再生成APIエラー');
+        alert('再計算に失敗しました');
+        return;
       }
-    };
-
-    fetchTargets();
-  }, []);
+      await fetchTargets();
+    } catch (err) {
+      console.error('マッチング再生成エラー:', err);
+      alert('エラーが発生しました');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSendToday = async () => {
     setSending(true);
@@ -41,11 +46,57 @@ export default function NewsSendPage() {
     }
   };
 
+  const fetchTargets = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/news-send/get-today-targets');
+      const data = await res.json();
+      setTargets(data);
+
+      // ✅ 記事IDを集約して1回のリクエストで取得
+      const allArticleIds = data.flatMap(t => t.matched_articles);
+      const uniqueIds = [...new Set(allArticleIds)];
+      if (uniqueIds.length > 0) {
+        const articleRes = await fetch(`/api/news-send/get-articles-by-ids`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids: uniqueIds })
+        });
+        const articleData = await articleRes.json();
+        const map = {};
+        articleData.forEach(a => {
+          map[a.article_id] = a;
+        });
+        setArticleMap(map);
+      }
+    } catch (err) {
+      console.error('配信対象取得エラー:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="p-6 max-w-6xl mx-auto">
       <h1 className="text-xl font-bold mb-4">本日配信予定のマッチング確認</h1>
 
-      <div className="mb-4">
+      <div className="flex gap-4 mb-4">
+        <button
+          onClick={handleForceRecalc}
+          disabled={loading}
+          className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded"
+        >
+          🛠 本日のマッチングを生成
+        </button>
+
+        <button
+          onClick={fetchTargets}
+          disabled={loading}
+          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
+        >
+          {loading ? '取得中...' : '📋 マッチングを取得'}
+        </button>
+
         <button
           onClick={handleSendToday}
           disabled={sending}
@@ -77,11 +128,16 @@ export default function NewsSendPage() {
 
               {target.matched_articles.length > 0 ? (
                 <ul className="list-disc pl-5 text-sm">
-                  {target.matched_articles.map((article) => (
-                    <li key={article.article_id}>
-                      {article.title}（{article.agency}）
-                    </li>
-                  ))}
+                  {target.matched_articles.map((id) => {
+                    const article = articleMap[id];
+                    return article ? (
+                      <li key={id}>
+                        {article.structured_title}（{article.structured_agency}）
+                      </li>
+                    ) : (
+                      <li key={id}>記事情報を取得できませんでした（ID: {id}）</li>
+                    );
+                  })}
                 </ul>
               ) : (
                 <p className="text-red-500 text-sm">マッチする記事がありません</p>

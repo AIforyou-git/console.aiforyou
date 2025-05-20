@@ -57,14 +57,15 @@ export function useArticles({ page, keyword, sortBy, ascending, clientData }) {
           { count: "exact" }
         );
 
-      if (clientData?.match_by_city && clientData?.region_full) {
-        // ✅ 市区町村まで絞り込む（完全一致）＋ 全国
-        query = query.in("structured_area_full", [clientData.region_full, "全国"]);
+       if (clientData?.match_by_city && clientData?.region_full && clientData?.region_prefecture) {
+        // 市区町村（structured_area_full）、都道府県全域（structured_city is null）、全国を対象に明示的にフィルタ
+        query = query.or(
+          `structured_area_full.eq.${clientData.region_full},and(structured_prefecture.eq.${clientData.region_prefecture},structured_city.is.null),structured_prefecture.eq.全国`
+        );
       } else if (clientData?.region_prefecture) {
-        // ✅ 都道府県レベル表示（全市区含む）＋ 全国
-        query = query.in("structured_prefecture", [clientData.region_prefecture, "全国"]);
-      }
-
+  // 都道府県単位（都道府県 + 全国）
+  query = query.in("structured_prefecture", [clientData.region_prefecture, "全国"]);
+}
       if (keyword === "お気に入り") {
         const { data: likes } = await supabase
           .from("user_engagement_logs")
