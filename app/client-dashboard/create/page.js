@@ -163,20 +163,39 @@ export default function ClientUpdatePage() {
       regionFull = regionPrefecture + regionCity;
     }
 
-    const { data: articles, error: articleError } = await scrapingSupabase
+    
+  const regionCondition = matchByCity
+  ? `structured_area_full.eq.${regionFull},and(structured_prefecture.eq.${regionPrefecture},structured_city.is.null),structured_prefecture.eq.全国`
+  : `structured_prefecture.in.(${regionPrefecture},全国)`;
+
+// ✅ JSTの本日0:00〜23:59を定義
+const todayStart = new Date();
+todayStart.setHours(0, 0, 0, 0);
+
+const todayEnd = new Date();
+todayEnd.setHours(23, 59, 59, 999);
+
+const { data: articles, error: articleError } = await scrapingSupabase
   .from("jnet_articles_public")
-  .select("article_id")
-  .eq("send_today", true)
+  .select("article_id, structured_prefecture, structured_area_full, structured_city, published_at")
   .eq("visible", true)
-  .gte("published_at", `${todayISO}T00:00:00`) // ✅ 本日以降のみに限定
-  .lte("published_at", `${todayISO}T23:59:59`) // ✅ 本日までに限定
-  .in("structured_area_full", matchByCity ? [regionFull, "全国"] : [regionPrefecture, "全国"]);
+  .gte("published_at", todayStart.toISOString())
+  .lte("published_at", todayEnd.toISOString())
+  .or(regionCondition);
+
+console.log("✅ 記事取得エラー:", articleError);
+console.log("✅ 記事取得数:", articles?.length);
+console.log("✅ matchByCity:", matchByCity);
+console.log("✅ regionPrefecture:", regionPrefecture);
+console.log("✅ regionFull:", regionFull);
 
 if (articleError) {
-  console.error("マッチ記事取得エラー:", articleError.message);
+  console.error("❌ マッチ記事取得エラー:", articleError.message);
 }
 
-const matchedIds = (articles || []).map(a => a.article_id); // ✅ 空でも対応
+const matchedIds = (articles || []).map(a => a.article_id);
+console.log("✅ マッチ記事数:", matchedIds.length);
+console.log("✅ matched_articles:", matchedIds);
 
 const { error: upsertError } = await supabase
   .from("client_daily_matches")

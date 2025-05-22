@@ -1,6 +1,6 @@
 'use client';
 
-//import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 
 export default function NewsSendPage() {
   const [targets, setTargets] = useState([]);
@@ -11,10 +11,13 @@ export default function NewsSendPage() {
 
   const handleForceRecalc = async () => {
     setLoading(true);
-    try {
-      const res = await fetch('/api/admin/force-calc-matching', {
-        method: 'POST',
-      });
+    try {const res = await fetch('/api/news-send/generate-matches', { method: 'POST' });
+
+
+      //const res = await fetch('/api/admin/force-calc-matching', {
+      //  method: 'POST',
+      //});
+
       if (!res.ok) {
         console.error('マッチング再生成APIエラー');
         alert('再計算に失敗しました');
@@ -34,6 +37,7 @@ export default function NewsSendPage() {
     setResults([]);
 
     try {
+
       const res = await fetch('/api/news-send/send-today', {
         method: 'POST',
       });

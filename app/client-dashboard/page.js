@@ -5,13 +5,13 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/authProvider";
 import { supabase } from "@/lib/supabaseClient";
 import Link from "next/link";
-import ClientInfoForm from "./ClientInfoForm";
+//import ClientInfoForm from "./ClientInfoForm";
 import NewsControlPage from "./news-control"; // ← 変更ポイント
 
 export default function ClientDashboard() {
   const { user, loading } = useAuth();
   const [clientData, setClientData] = useState(null);
-  const [showInfoModal, setShowInfoModal] = useState(false);
+  //const [showInfoModal, setShowInfoModal] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [clientName, setClientName] = useState("");
   const [retryCount, setRetryCount] = useState(0);
@@ -30,9 +30,9 @@ export default function ClientDashboard() {
 
         if (error) throw error;
 
-        if (!data || !data.profile_completed) {
-          setShowInfoModal(true);
-        }
+       // if (!data || !data.profile_completed) {
+       //   setShowInfoModal(true);
+       // }
 
         setClientData(data);
         const name = data?.name || user.email?.split("@")[0];
@@ -50,23 +50,23 @@ export default function ClientDashboard() {
     if (!loading) loadClientData();
   }, [user, loading, retryCount]);
 
-  const handleModalClose = async () => {
-    setShowInfoModal(false);
-    setIsSyncing(true);
+ // const handleModalClose = async () => {
+ //   setShowInfoModal(false);
+ //   setIsSyncing(true);
 
-    try {
-      const now = new Date().toISOString();
-      const { error } = await supabase
-        .from("users")
-        .update({ status: "active", last_login: now })
-        .eq("id", user.id);
-      if (error) throw error;
-    } catch (err) {
-      console.error("❌ Supabase 同期通信失敗:", err.message);
-    } finally {
-      setIsSyncing(false);
-    }
-  };
+ //   try {
+ //     const now = new Date().toISOString();
+ //     const { error } = await supabase
+ //       .from("users")
+ //       .update({ status: "active", last_login: now })
+ //       .eq("id", user.id);
+ //     if (error) throw error;
+ //   } catch (err) {
+ //     console.error("❌ Supabase 同期通信失敗:", err.message);
+ //   } finally {
+ //     setIsSyncing(false);
+ //   }
+ // };
 
   if (loading || fetching) {
     return (
@@ -107,13 +107,14 @@ export default function ClientDashboard() {
         </div>
       </div>
 
-      {showInfoModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center">
-          <div className="bg-white rounded-xl p-6 w-[95%] max-w-xl shadow-2xl">
-            <ClientInfoForm onClose={handleModalClose} />
-          </div>
-        </div>
-      )}
+      
+      {/*// {showInfoModal && (
+      //  <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center">
+      //    <div className="bg-white rounded-xl p-6 w-[95%] max-w-xl shadow-2xl">
+      //      <ClientInfoForm onClose={handleModalClose} />
+      //    </div>
+      //  </div>
+      //)}*/}
 
       {isSyncing && (
         <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center">

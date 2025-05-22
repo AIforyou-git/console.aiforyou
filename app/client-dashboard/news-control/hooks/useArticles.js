@@ -2,6 +2,24 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import scrapingClient from "@/lib/supabaseScrapingClient";
 
+export function isArticleMatch(article, clientData) {
+  if (!article || !clientData) return false;
+
+  if (clientData.match_by_city) {
+    return (
+      article.structured_area_full === clientData.region_full ||
+      (article.structured_prefecture === clientData.region_prefecture &&
+        article.structured_city == null) ||
+      article.structured_prefecture === "全国"
+    );
+  } else {
+    return (
+      article.structured_prefecture === clientData.region_prefecture ||
+      article.structured_prefecture === "全国"
+    );
+  }
+}
+
 export function useArticles({ page, keyword, sortBy, ascending, clientData }) {
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);

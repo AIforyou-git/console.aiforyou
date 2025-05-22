@@ -3,10 +3,7 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 export async function GET() {
   try {
-    //const today = new Date().toISOString().slice(0, 10);
-    const now = new Date();
-    const jst = new Date(now.getTime() + 9 * 60 * 60 * 1000); // JST変換
-    const today = jst.toISOString().slice(0, 10);
+    const today = new Date().toISOString().slice(0, 10);
 
     // ✅ ① client_daily_matches から本日のマッチング取得
     const { data: matches, error: matchError } = await supabaseAdmin

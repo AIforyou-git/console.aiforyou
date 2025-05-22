@@ -95,7 +95,7 @@ export default function LoginSBPage() {
       ]);
 
     const roleRedirects = {
-      client: '/client-dashboard/client-dashboard_checkin', // ✅ 初回はここへ
+      client: '/client-dashboard',
       agency: '/agency-dashboard',
       user: '/user-dashboard',
       admin: '/admin-dashboard',
