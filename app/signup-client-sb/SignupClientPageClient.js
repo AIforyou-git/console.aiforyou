@@ -84,10 +84,16 @@ export default function SignupClientPageClient() {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-100 to-blue-300 px-4">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md text-center space-y-4">
-        <h1 className="text-2xl font-bold text-gray-800">📝 AIforyouへようこそ！！</h1>
-        <p className="text-gray-600 text-sm">紹介リンクから登録を完了してください</p>
-        <p className="text-xs text-gray-400 italic">※こちらは会員様限定のサービスです</p>
+  <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md text-center space-y-4">
+    {/* タイトルを上下2行に分割 */}
+    <div className="text-center">
+      <h1 className="text-2xl font-bold text-gray-800 mr-10">📝 AIforyouへ  </h1>
+      <h2 className="text-xl font-bold text-gray-800 mt-1">ようこそ！！</h2>
+    </div>
+
+    <p className="text-gray-600 text-sm">紹介リンクから登録を完了してください</p>
+    <p className="text-xs text-gray-400 italic">※こちらは会員様限定のサービスです</p>
+
         <input
           type="email"
           placeholder="メールアドレス"
