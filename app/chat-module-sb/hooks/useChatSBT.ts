@@ -1,19 +1,7 @@
-"use client";
-
-import { useState } from "react";
-import { createClient } from "@supabase/supabase-js";
-
-// ✅ 共通型を明示
-type ChatMessage = {
-  role: "user" | "assistant";
-  content: string;
-  hidden?: boolean;
-};
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { useState, useEffect } from "react";
+import { ChatMessage } from "../types/chat";
+import { fetchChatMessages } from "../utils/chatService";
+import { supabase } from "@/lib/supabaseClient"; // ← ✅ 必須
 
 export function useChatSBT(
   articleId?: string | null,
@@ -23,12 +11,18 @@ export function useChatSBT(
   onAssistantComplete?: (content: string) => void
 ) {
   const [input, setInput] = useState("");
-
-  // ✅ 型を ChatMessage[] に統一
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-
-  // ✅ structuredMessage も ChatMessage 型に
   const [structuredMessage, setStructuredMessage] = useState<ChatMessage | null>(null);
+
+  useEffect(() => {
+    const load = async () => {
+      if (!sessionId) return;
+      const { data, error } = await fetchChatMessages(sessionId);
+      if (data) setMessages(data);
+      else if (error) console.error("履歴取得失敗:", error.message);
+    };
+    load();
+  }, [sessionId]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInput(e.target.value);
@@ -36,9 +30,8 @@ export function useChatSBT(
 
   const handleSend = async () => {
     if (!input.trim()) return;
-
-    // ✅ 型推論でエラーが出る場合は as const を追加
-    const newMessages = [...messages, { role: "user" as const, content: input }];
+    const newMessage: ChatMessage = { role: "user", content: input };
+const newMessages = [...messages, newMessage];
     setMessages(newMessages);
     setInput("");
 
@@ -54,7 +47,7 @@ export function useChatSBT(
     });
 
     if (!response.ok || !response.body) {
-      console.error("Stream failed");
+      console.error("GPT ストリームエラー");
       return;
     }
 
@@ -75,7 +68,6 @@ export function useChatSBT(
         if (!line.startsWith("data: ")) continue;
 
         const jsonStr = line.replace("data: ", "").trim();
-
         if (jsonStr === "[DONE]") {
           if (assistantContent && onAssistantComplete) {
             onAssistantComplete(assistantContent);
@@ -86,14 +78,11 @@ export function useChatSBT(
         try {
           const parsed = JSON.parse(jsonStr);
           const content = parsed.choices?.[0]?.delta?.content;
-
           if (content) {
             assistantContent += content;
-
             setMessages((prev) => {
               const temp = [...prev];
               const last = temp[temp.length - 1];
-
               if (last?.role === "assistant") {
                 temp[temp.length - 1] = {
                   ...last,
@@ -102,12 +91,11 @@ export function useChatSBT(
               } else {
                 temp.push({ role: "assistant", content });
               }
-
               return temp;
             });
           }
         } catch (err) {
-          console.error("JSON parse error:", err);
+          console.error("ストリーム JSON 解析エラー:", err);
         }
       }
 

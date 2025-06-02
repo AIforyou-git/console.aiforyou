@@ -1,9 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react"; // ✅ useEffect を追加
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/lib/authProvider";
+import scrapingSupabaseOnlyForThisPage from "@/lib/supabaseScrapingClient";
+
+
 
 const prefectureList = [
   "北海道", "青森県", "岩手県", "宮城県", "秋田県", "山形県", "福島県",
@@ -15,10 +18,7 @@ const prefectureList = [
   "熊本県", "大分県", "宮崎県", "鹿児島県", "沖縄県"
 ];
 
-const industryList = [
-  "IT・ソフトウェア", "製造業", "医療・福祉", "教育・学習支援", "建設・不動産",
-  "小売・卸売", "金融・保険", "運輸・物流", "農林水産業", "その他"
-];
+
 
 export default function ClientInfoForm({ onClose }) {
   const { user } = useAuth();
@@ -28,6 +28,27 @@ export default function ClientInfoForm({ onClose }) {
     regionPrefecture: "",
     industry: ""
   });
+
+  const [industryOptions, setIndustryOptions] = useState([]); // ✅ refinedPersonalCategory のリスト用
+
+  useEffect(() => {
+  const fetchIndustries = async () => {
+    const { data, error } = await scrapingSupabaseOnlyForThisPage
+      .from("industry_category_mapping_api")
+      .select("refined_personal_category");
+
+    if (error) {
+      console.error("業種取得失敗:", error.message);
+      return;
+    }
+
+    const uniqueOptions = [...new Set(data.map(d => d.refined_personal_category))].filter(Boolean);
+    setIndustryOptions(uniqueOptions);
+  };
+
+  fetchIndustries();
+}, []);
+
 
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
@@ -121,7 +142,7 @@ export default function ClientInfoForm({ onClose }) {
         <ul className="text-left mt-3 text-sm list-disc list-inside">
           <li>お名前</li>
           <li>事業活動の地域（都道府県）</li>
-          <li>業種（ご活動のジャンル）</li>
+          <li>あなたの気になること（ご活動のジャンル）</li>
         </ul>
         <p className="text-xs mt-2 text-gray-500">
           ※ 後からいつでも変更できますのでご安心ください 🌼
@@ -164,10 +185,10 @@ export default function ClientInfoForm({ onClose }) {
             className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring focus:border-blue-300"
             required
           >
-            <option value="">　　　　業種を選択してください　　　　</option>
-            {industryList.map((ind) => (
-              <option key={ind} value={ind}>{ind}</option>
-            ))}
+            <option value="">　　　　あなたの気になることを選択してください　　　　</option>
+            {industryOptions.map((ind) => (
+  <option key={ind} value={ind}>{ind}</option>
+))}
           </select>
         </div>
 

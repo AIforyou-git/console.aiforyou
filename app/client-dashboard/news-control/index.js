@@ -8,6 +8,7 @@ import ArticleFilters from "./components/ArticleFilters";
 import ArticleCard from "./components/ArticleCard";
 import PaginationControls from "./components/PaginationControls";
 import { supabase } from "@/lib/supabaseClient";
+//import Link from "next/link"; // ✅ ← これが必要
 
 export default function NewsControlPage({ clientData }) {
   const [page, setPage] = useState(0);
@@ -58,6 +59,24 @@ export default function NewsControlPage({ clientData }) {
         📢 {clientData?.name || "○○"}様向けの支援情報
         <span className="text-sm text-gray-500">（{totalCount} 件）</span>
       </h1>
+
+     {/*
+<div className="flex gap-2 mt-2 mb-3">
+  {[
+    { href: "/client-dashboard/news-control/recommended", label: "あなたの新着" },
+    { href: "/client-dashboard/news-control", label: "すべての新着" },
+    { href: "/client-dashboard/news-control/favorite", label: "お気に入り" },
+  ].map((tab) => (
+    <Link
+      key={tab.href}
+      href={tab.href}
+      className="px-4 py-1 text-sm font-semibold rounded-full border bg-gray-100 hover:bg-emerald-200 text-gray-700"
+    >
+      {tab.label}
+    </Link>
+  ))}
+</div>
+*/}
 
       {!isProd && (
         <button

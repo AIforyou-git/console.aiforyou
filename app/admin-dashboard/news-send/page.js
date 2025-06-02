@@ -11,12 +11,8 @@ export default function NewsSendPage() {
 
   const handleForceRecalc = async () => {
     setLoading(true);
-    try {const res = await fetch('/api/news-send/generate-matches', { method: 'POST' });
-
-
-      //const res = await fetch('/api/admin/force-calc-matching', {
-      //  method: 'POST',
-      //});
+    try {
+      const res = await fetch('/api/news-send/generate-matches', { method: 'POST' });
 
       if (!res.ok) {
         console.error('マッチング再生成APIエラー');
@@ -37,7 +33,6 @@ export default function NewsSendPage() {
     setResults([]);
 
     try {
-
       const res = await fetch('/api/news-send/send-today', {
         method: 'POST',
       });
@@ -53,7 +48,7 @@ export default function NewsSendPage() {
   const fetchTargets = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/news-send/get-today-targets');
+      const res = await fetch('/api/news-send/get-latest-matches');
       const data = await res.json();
       setTargets(data);
 
@@ -90,7 +85,7 @@ export default function NewsSendPage() {
           disabled={loading}
           className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded"
         >
-          🛠 本日のマッチングを生成
+          🛠 現在のマッチングを更新
         </button>
 
         <button
@@ -114,7 +109,8 @@ export default function NewsSendPage() {
         <p>読み込み中...</p>
       ) : targets.length === 0 ? (
         <p className="text-sm text-gray-500">
-          本日配信予定のユーザーは見つかりませんでした。
+         最新のマッチング情報が見つかりませんでした。
+※「本日の配信対象のみ」を確認する場合は専用ページをご利用ください。
         </p>
       ) : (
         <div className="space-y-6">
@@ -124,10 +120,11 @@ export default function NewsSendPage() {
               className="border p-4 rounded shadow-sm bg-white"
             >
               <h2 className="font-semibold text-lg mb-1">
-                {target.user_email}
+                {target.user_email}（{target.matched_articles.length}件）
               </h2>
               <p className="text-sm text-gray-600 mb-2">
                 業種: {target.client_industry} ／ 地域: {target.client_prefecture}
+                {target.client_city ? `（${target.client_city}）` : ''}
               </p>
 
               {target.matched_articles.length > 0 ? (

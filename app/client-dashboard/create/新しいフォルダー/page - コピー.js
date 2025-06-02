@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 //import scrapingSupabase from "@/lib/supabaseScrapingClient";
-
 import scrapingSupabaseOnlyForThisPage from "@/lib/supabaseScrapingClient";
 
 import { useAuth } from "@/lib/authProvider";
@@ -106,8 +105,6 @@ const [memo, setMemo] = useState("");
           setRegionPrefecture(clientData.region_prefecture ?? "");
           setRegionCity(clientData.region_city ?? "");
           setIndustry((clientData.industry ?? "").trim());
-          setRefinedPersonalCategory((clientData.industry ?? "").trim()); // ✅ 追加
-  setSubcategory(clientData.industry_2 ?? ""); // ✅ 任意設定も復元
           setMemo(clientData.memo ?? "");
           setMatchByCity(clientData.match_by_city ?? true); // ✅
         }
@@ -138,10 +135,8 @@ const [memo, setMemo] = useState("");
         return;
       }
 
-      //const cities = data.map(row => row.city_kanji).filter(Boolean);
-      //setCityOptions(cities);
-      const cities = [...new Set(data.map(row => row.city_kanji).filter(Boolean))]; // ✅ 重複除去
-setCityOptions(cities);
+      const cities = data.map(row => row.city_kanji).filter(Boolean);
+      setCityOptions(cities);
     };
 
     fetchCities();
@@ -175,24 +170,24 @@ setCityOptions(cities);
     }
 
     const { error } = await supabase
-  .from("clients")
-  .upsert({
-    uid: user.id,
-    company,
-    position,
-    name,
-    region_prefecture: regionPrefecture,
-    region_city: regionCity,
-    region_full: regionFull, // ✅ 追加保存
-    industry: refinedPersonalCategory,     // ✅ 上書き保存
-    industry_2: subcategory || null,       // ✅ 新カラムに保存（任意）
-    memo,
-    match_by_city: matchByCity,
-    profile_completed: true,
-    updated_at: now,
-  }, {
-    onConflict: "uid",
-});
+      .from("clients")
+      .upsert({
+        uid: user.id,
+        company,
+        position,
+        name,
+        region_prefecture: regionPrefecture,
+        region_city: regionCity,
+        region_full: regionFull, // ✅ 追加保存
+        industry,
+        memo,
+        match_by_city: matchByCity,
+        profile_completed: true,
+        updated_at: now,
+      }, {
+        onConflict: "uid",
+      });
+
         if (error) throw error;
 
     // 🟢 client_daily_matches に保存
@@ -218,8 +213,7 @@ todayStart.setHours(0, 0, 0, 0);
 const todayEnd = new Date();
 todayEnd.setHours(23, 59, 59, 999);
 
-//const { data: articles, error: articleError } = await scrapingSupabase
-const { data: articles, error: articleError } = await scrapingSupabaseOnlyForThisPage
+const { data: articles, error: articleError } = await scrapingSupabase
   .from("jnet_articles_public")
   .select("article_id, structured_prefecture, structured_area_full, structured_city, published_at")
   .eq("visible", true)
@@ -385,18 +379,18 @@ function Select({ label, value, onChange, options, required = false, disabled = 
     <div>
       <label className="block mb-1 text-sm font-medium">{label}:</label>
       <select
-  value={value}
-  onChange={(e) => onChange?.(e.target.value)}
-  onMouseDown={handleMouseDown}
-  required={required}
-  disabled={disabled}
-  className="w-full border border-gray-300 rounded px-3 py-2"
->
-  <option value="" disabled>選択してください</option> {/* ✅ 修正: 選択不可に */}
-  {options.map((opt) => (
-    <option key={opt} value={opt}>{opt}</option>
-  ))}
-</select>
+        value={value}
+        onChange={(e) => onChange?.(e.target.value)}
+        onMouseDown={handleMouseDown} // ✅ 追加ここだけ
+        required={required}
+        disabled={disabled}
+        className="w-full border border-gray-300 rounded px-3 py-2"
+      >
+        <option value="">選択してください</option>
+        {options.map((opt) => (
+          <option key={opt} value={opt}>{opt}</option>
+        ))}
+      </select>
     </div>
   );
 }

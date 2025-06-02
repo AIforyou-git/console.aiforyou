@@ -3,56 +3,39 @@
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import React from "react";
-import { useEffect, useState } from "react";
 
 export default function ArticleCard({ article, userId, engaged = {}, onEngage }) {
   const router = useRouter();
-  const [userEmail, setUserEmail] = useState(null);
-
-  useEffect(() => {
-    const fetchEmail = async () => {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const email = sessionData.session?.user?.email;
-      if (email) {
-        setUserEmail(email);
-      }
-    };
-    fetchEmail();
-  }, []);
 
   const handleSupportClick = async () => {
-  if (!userId) {
-    alert("ログインが必要です。");
-    return;
-  }
+    if (!userId) {
+      alert("ログインが必要です。");
+      return;
+    }
 
-  // ✅ Supabaseセッションから直接 email を取得
-  const { data: sessionData } = await supabase.auth.getSession();
-  const email = sessionData.session?.user?.email;
-
-  const { data: session } = await supabase
-    .from("chat_sessions")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("article_id", article.article_id)
-    .single();
-
-  let sessionId = session?.id;
-
-  if (!sessionId) {
-    const { data: inserted, error: insertError } = await supabase
+    const { data: session } = await supabase
       .from("chat_sessions")
-      .insert([
-        {
-          user_id: userId,
-          user_email: email, // ✅ ← 修正：セッションから取得したemailを格納
-          article_id: article.article_id,
-          article_title_snippet: article.structured_title ?? "（タイトル未定）",
-          status: "active",
-        },
-      ])
       .select("id")
+      .eq("user_id", userId)
+      .eq("article_id", article.article_id)
       .single();
+
+    let sessionId = session?.id;
+
+    if (!sessionId) {
+      const { data: inserted, error: insertError } = await supabase
+        .from("chat_sessions")
+        .insert([
+          {
+            user_id: userId,
+            article_id: article.article_id,
+            user_email: null,
+            article_title_snippet: article.structured_title ?? "（タイトル未定）",
+            status: "active",
+          },
+        ])
+        .select("id")
+        .single();
 
       if (insertError || !inserted) {
         alert("セッションの作成に失敗しました。");

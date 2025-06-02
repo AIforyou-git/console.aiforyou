@@ -1,9 +1,15 @@
 // app/chat-module-sb/types/chat.ts
-// 修正理由: ChatHistoryList.tsx にて msg.created_at が必要なため。
-// 変更内容: created_at をオプショナルで追加し、安全な型アクセスを実現。
-export type Message = {
-  id: string;
-  text: string;
-  role: string;
+
+export type ChatMessage = {
+  role: "user" | "assistant" | "system";
+  content: string;
+  hidden?: boolean;
   created_at?: string;
+  message_index?: number;
+};
+
+export type ArticleInfo = {
+  title: string;
+  structured_title?: string;
+  structured_summary?: string;
 };

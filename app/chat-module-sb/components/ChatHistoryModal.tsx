@@ -52,8 +52,19 @@ export default function ChatHistoryModal({ articleId, userId, onClose }: Props) 
               }`}
             >
               <div className="inline-block bg-gray-100 rounded px-3 py-2 max-w-[80%]">
-                {msg.content}
-              </div>
+  {msg.created_at && (
+    <div className="text-[10px] text-gray-500 mb-1 text-right">
+      {new Date(msg.created_at).toLocaleString("ja-JP", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      })}
+    </div>
+  )}
+  {msg.content}
+</div>
             </div>
           ))
         )}

@@ -20,13 +20,13 @@ export async function POST(req: Request) {
     {
       role: "system",
       content:
-        "あなたは中小企業支援に詳しい制度案内の専門AIです。わかりやすく、制度の目的や対象者、金額、募集期間などを元に補助金制度を説明してください。",
+        "あなたは中小企業支援に詳しい制度案内の専門AIです。次の補助金情報をもとに、制度の概要、対象、金額、募集期間などを200文字以内でわかりやすく説明してください。",
     },
     ...(systemStruct
       ? [
           {
             role: "system",
-            content: `以下は制度に関する構造化情報です。\n${systemStruct.content}`,
+            content: systemStruct.content,
           },
         ]
       : []),
@@ -34,12 +34,13 @@ export async function POST(req: Request) {
   ];
 
   const response = await openai.createChatCompletion({
-    model: "gpt-4",
+    model: "gpt-3.5-turbo",
+    max_tokens: 200,
     messages: gptMessages,
     stream: true,
   });
 
-  const stream = await OpenAIStream(response); // ✅ 自作stream
+  const stream = await OpenAIStream(response);
 
   return new Response(stream, {
     headers: {

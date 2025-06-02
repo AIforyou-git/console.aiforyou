@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
-import { runRegionMatch, runCategoryFilter } from '@/lib/matching/logic';
+//import { runRegionMatch } from '@/lib/matching/logic'; // ✅ 不要な runCategoryFilter を削除
+import { runRegionMatch, runCategoryFilter } from '@/lib/matching/logic'; // ✅ runCategoryFilter を明示的にインポート
 import { saveMatchesToDailyTable } from '@/lib/matching/access';
 
 export async function POST() {
@@ -10,7 +11,7 @@ export async function POST() {
     const regionMatches = await runRegionMatch();
     console.log('✅ 地域マッチ完了:', regionMatches.length);
 
-    const finalMatches = runCategoryFilter(regionMatches);
+    const finalMatches = await runCategoryFilter(regionMatches);
     console.log('✅ 業種マッチ完了:', finalMatches.length);
 
     const grouped = groupMatchesByUser(finalMatches);
@@ -26,19 +27,12 @@ export async function POST() {
   }
 }
 
-// ✅ 修正済み：client.uid / article.article_id でアクセス
 function groupMatchesByUser(matches) {
   const grouped = {};
-  for (const match of matches) {
-    const user_id = match.client.uid;
-    const article_id = match.article.article_id;
-
-    if (!grouped[user_id]) {
-      grouped[user_id] = [];
-    }
+  for (const { user_id, article_id } of matches) {
+    if (!grouped[user_id]) grouped[user_id] = [];
     grouped[user_id].push(article_id);
   }
-
   return Object.entries(grouped).map(([user_id, matched_articles]) => ({
     user_id,
     matched_articles,

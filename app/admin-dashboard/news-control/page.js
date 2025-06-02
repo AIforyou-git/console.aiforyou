@@ -23,6 +23,7 @@ export default function NewsControlPage() {
       prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
     );
   };
+
   // ✅ 公開済みを除いた記事を全選択 or 全解除する関数
   const toggleSelectAll = () => {
     const selectableIds = filteredArticles
@@ -50,12 +51,16 @@ export default function NewsControlPage() {
           structured_prefecture,
           structured_city,
           structured_application_period,
-          structured_industry_keywords,
+          
           structured_grant_type,
           structured_purpose,
           visible,
           send_today,
-          structured_at
+          structured_at,
+          structured_personal_category,
+          structured_subcategory,
+          structured_amount_description,
+          admin_memo
         `)
         .order('visible', { ascending: true })
         .order('send_today', { ascending: true })
@@ -93,45 +98,50 @@ export default function NewsControlPage() {
       </div>
 
       <BulkPublishButton
-  selectedIds={selectedIds}
-  onSuccess={() => {
-    setSelectedIds([]);
-    window.location.reload();
-  }}
-  setLoading={setLoading}
-/>
+        selectedIds={selectedIds}
+        onSuccess={() => {
+          setSelectedIds([]);
+          window.location.reload();
+        }}
+        setLoading={setLoading}
+      />
 
-{loading && (
-  <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-    <div className="bg-white p-6 rounded shadow text-center">
-      <p className="text-lg font-semibold mb-2">公開処理中です…</p>
-      <p className="text-sm text-gray-600">しばらくお待ちください</p>
-    </div>
-  </div>
-)}
+      {loading && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+          <div className="bg-white p-6 rounded shadow text-center">
+            <p className="text-lg font-semibold mb-2">公開処理中です…</p>
+            <p className="text-sm text-gray-600">しばらくお待ちください</p>
+          </div>
+        </div>
+      )}
 
       <table className="table-auto w-full text-sm border">
         <thead>
-  <tr className="bg-gray-100">
-    <th className="border px-2 py-1">
-      <input
-        type="checkbox"
-        onChange={toggleSelectAll}
-        checked={
-          filteredArticles
-            .filter((a) => !(a.visible && a.send_today))
-            .every((a) => selectedIds.includes(a.article_id))
-        }
-      />
-    </th>
+          <tr className="bg-gray-100">
+            <th className="border px-2 py-1">
+              <input
+                type="checkbox"
+                onChange={toggleSelectAll}
+                checked={
+                  filteredArticles
+                    .filter((a) => !(a.visible && a.send_today))
+                    .every((a) => selectedIds.includes(a.article_id))
+                }
+              />
+            </th>
             <th className="border px-2 py-1">ID</th>
             <th className="border px-2 py-1">タイトル</th>
             <th className="border px-2 py-1">募集機関</th>
             <th className="border px-2 py-1">都道府県</th>
             <th className="border px-2 py-1">市区町村</th>
             <th className="border px-2 py-1">期間</th>
-            <th className="border px-2 py-1">業種</th>
+            
             <th className="border px-2 py-1">カテゴリ</th>
+            
+            <th className="border px-2 py-1">わたしごと</th>
+            <th className="border px-2 py-1">業種</th>
+            <th className="border px-2 py-1">金額</th>
+            <th className="border px-2 py-1">管理メモ</th>
             <th className="border px-2 py-1">目的</th>
           </tr>
         </thead>
@@ -162,8 +172,12 @@ export default function NewsControlPage() {
               <td className="border px-2 py-1">
                 {a.structured_application_period?.start} ～ {a.structured_application_period?.end}
               </td>
-              <td className="border px-2 py-1">{(a.structured_industry_keywords || []).join(', ')}</td>
+              
               <td className="border px-2 py-1">{a.structured_grant_type}</td>
+              <td className="border px-2 py-1">{(a.structured_personal_category || []).join(', ')}</td>
+              <td className="border px-2 py-1">{(a.structured_subcategory || []).join(', ')}</td>
+              <td className="border px-2 py-1">{a.structured_amount_description}</td>
+              <td className="border px-2 py-1 text-xs text-gray-500">{a.admin_memo}</td>
               <td className="border px-2 py-1">
                 {a.structured_purpose}
                 {a.detail_url && (

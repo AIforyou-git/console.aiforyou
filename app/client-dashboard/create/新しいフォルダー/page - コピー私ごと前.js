@@ -2,10 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-//import scrapingSupabase from "@/lib/supabaseScrapingClient";
-
-import scrapingSupabaseOnlyForThisPage from "@/lib/supabaseScrapingClient";
-
+import scrapingSupabase from "@/lib/supabaseScrapingClient";
 import { useAuth } from "@/lib/authProvider";
 import Link from "next/link";
 
@@ -20,14 +17,14 @@ const PREFECTURES = [
   "福岡県", "佐賀県", "長崎県", "熊本県", "大分県", "宮崎県", "鹿児島県", "沖縄県"
 ];
 
-//const INDUSTRIES = [
-//  "農業，林業", "漁業", "鉱業，採石業，砂利採取業", "建設業", "製造業",
-//  "電気・ガス・熱供給・水道業", "情報通信業", "運輸業，郵便業", "卸売業，小売業",
-//  "金融業，保険業", "不動産業，物品賃貸業", "学術研究，専門・技術サービス業",
-//  "宿泊業，飲食サービス業", "生活関連サービス業，娯楽業", "教育，学習支援業",
-//  "医療，福祉", "複合サービス事業", "サービス業（他に分類されないもの）",
-//  "公務（他に分類されるものを除く）", "分類不能の産業"
-//];
+const INDUSTRIES = [
+  "農業，林業", "漁業", "鉱業，採石業，砂利採取業", "建設業", "製造業",
+  "電気・ガス・熱供給・水道業", "情報通信業", "運輸業，郵便業", "卸売業，小売業",
+  "金融業，保険業", "不動産業，物品賃貸業", "学術研究，専門・技術サービス業",
+  "宿泊業，飲食サービス業", "生活関連サービス業，娯楽業", "教育，学習支援業",
+  "医療，福祉", "複合サービス事業", "サービス業（他に分類されないもの）",
+  "公務（他に分類されるものを除く）", "分類不能の産業"
+];
 
 export default function ClientUpdatePage() {
   const { user, loading } = useAuth();
@@ -38,43 +35,7 @@ export default function ClientUpdatePage() {
   const [regionCity, setRegionCity] = useState("");
   const [cityOptions, setCityOptions] = useState([]);
   const [industry, setIndustry] = useState("");
-  useEffect(() => {
-  const fetchCategoryData = async () => {
-    
-  const { data, error } = await scrapingSupabaseOnlyForThisPage
-  .from("industry_category_mapping_api")
-  .select("refined_personal_category, subcategory");
-    if (error) {
-      console.error("カテゴリ取得失敗:", error);
-      return;
-    }
-
-    const categorySet = new Set();
-    const subcatMap = {};
-
-    data.forEach(({ refined_personal_category, subcategory }) => {
-      if (refined_personal_category) {
-        categorySet.add(refined_personal_category);
-        if (!subcatMap[refined_personal_category]) {
-          subcatMap[refined_personal_category] = [];
-        }
-        if (subcategory) {
-          subcatMap[refined_personal_category].push(subcategory);
-        }
-      }
-    });
-
-    setRefinedPersonalCategoryOptions(Array.from(categorySet));
-    setSubcategoryOptions(subcatMap);
-  };
-
-  fetchCategoryData();
-}, []);
-   const [refinedPersonalCategory, setRefinedPersonalCategory] = useState("");
-const [refinedPersonalCategoryOptions, setRefinedPersonalCategoryOptions] = useState([]);
-const [subcategoryOptions, setSubcategoryOptions] = useState({});
-const [subcategory, setSubcategory] = useState(""); // ✅ 追加
-const [memo, setMemo] = useState("");
+  const [memo, setMemo] = useState("");
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [matchByCity, setMatchByCity] = useState(true); // ✅
@@ -106,8 +67,6 @@ const [memo, setMemo] = useState("");
           setRegionPrefecture(clientData.region_prefecture ?? "");
           setRegionCity(clientData.region_city ?? "");
           setIndustry((clientData.industry ?? "").trim());
-          setRefinedPersonalCategory((clientData.industry ?? "").trim()); // ✅ 追加
-  setSubcategory(clientData.industry_2 ?? ""); // ✅ 任意設定も復元
           setMemo(clientData.memo ?? "");
           setMatchByCity(clientData.match_by_city ?? true); // ✅
         }
@@ -138,10 +97,8 @@ const [memo, setMemo] = useState("");
         return;
       }
 
-      //const cities = data.map(row => row.city_kanji).filter(Boolean);
-      //setCityOptions(cities);
-      const cities = [...new Set(data.map(row => row.city_kanji).filter(Boolean))]; // ✅ 重複除去
-setCityOptions(cities);
+      const cities = data.map(row => row.city_kanji).filter(Boolean);
+      setCityOptions(cities);
     };
 
     fetchCities();
@@ -175,24 +132,24 @@ setCityOptions(cities);
     }
 
     const { error } = await supabase
-  .from("clients")
-  .upsert({
-    uid: user.id,
-    company,
-    position,
-    name,
-    region_prefecture: regionPrefecture,
-    region_city: regionCity,
-    region_full: regionFull, // ✅ 追加保存
-    industry: refinedPersonalCategory,     // ✅ 上書き保存
-    industry_2: subcategory || null,       // ✅ 新カラムに保存（任意）
-    memo,
-    match_by_city: matchByCity,
-    profile_completed: true,
-    updated_at: now,
-  }, {
-    onConflict: "uid",
-});
+      .from("clients")
+      .upsert({
+        uid: user.id,
+        company,
+        position,
+        name,
+        region_prefecture: regionPrefecture,
+        region_city: regionCity,
+        region_full: regionFull, // ✅ 追加保存
+        industry,
+        memo,
+        match_by_city: matchByCity,
+        profile_completed: true,
+        updated_at: now,
+      }, {
+        onConflict: "uid",
+      });
+
         if (error) throw error;
 
     // 🟢 client_daily_matches に保存
@@ -218,8 +175,7 @@ todayStart.setHours(0, 0, 0, 0);
 const todayEnd = new Date();
 todayEnd.setHours(23, 59, 59, 999);
 
-//const { data: articles, error: articleError } = await scrapingSupabase
-const { data: articles, error: articleError } = await scrapingSupabaseOnlyForThisPage
+const { data: articles, error: articleError } = await scrapingSupabase
   .from("jnet_articles_public")
   .select("article_id, structured_prefecture, structured_area_full, structured_city, published_at")
   .eq("visible", true)
@@ -267,8 +223,9 @@ if (upsertError) {
 };
 
 
-  // 業種選択を一時的に非表示にしたため、INDUSTRIES 依存も無効化
-const effectiveIndustries = [];
+  const effectiveIndustries = industry && !INDUSTRIES.includes(industry)
+    ? [industry, ...INDUSTRIES]
+    : INDUSTRIES;
 
   return (
     <div className="min-h-screen px-4 py-8 bg-gray-50">
@@ -314,28 +271,8 @@ const effectiveIndustries = [];
             </label>
           </div>
 
-          <Select
-            label="あなたの気になっている事は何ですか？"
-            value={refinedPersonalCategory}
-            onChange={(val) => {
-              setRefinedPersonalCategory(val);
-              setSubcategory(""); // リセット
-            }}
-            options={refinedPersonalCategoryOptions}
-          />
-
-          
-{refinedPersonalCategory && (
-  <Select
-    label="最も近い業種はなんですか？（任意）"
-    value={subcategory}
-    onChange={setSubcategory}
-    options={subcategoryOptions[refinedPersonalCategory] || []}
-  />
-)}
-
-          
-          
+          <Select label="業種" value={industry} onChange={setIndustry} options={effectiveIndustries} />
+          <Textarea label="メモ（任意）" value={memo} onChange={setMemo} />
 
           <div className="space-y-3 pt-4">
             <button type="button" onClick={registerClient} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded">
@@ -385,18 +322,18 @@ function Select({ label, value, onChange, options, required = false, disabled = 
     <div>
       <label className="block mb-1 text-sm font-medium">{label}:</label>
       <select
-  value={value}
-  onChange={(e) => onChange?.(e.target.value)}
-  onMouseDown={handleMouseDown}
-  required={required}
-  disabled={disabled}
-  className="w-full border border-gray-300 rounded px-3 py-2"
->
-  <option value="" disabled>選択してください</option> {/* ✅ 修正: 選択不可に */}
-  {options.map((opt) => (
-    <option key={opt} value={opt}>{opt}</option>
-  ))}
-</select>
+        value={value}
+        onChange={(e) => onChange?.(e.target.value)}
+        onMouseDown={handleMouseDown} // ✅ 追加ここだけ
+        required={required}
+        disabled={disabled}
+        className="w-full border border-gray-300 rounded px-3 py-2"
+      >
+        <option value="">選択してください</option>
+        {options.map((opt) => (
+          <option key={opt} value={opt}>{opt}</option>
+        ))}
+      </select>
     </div>
   );
 }
