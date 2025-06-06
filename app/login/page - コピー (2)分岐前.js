@@ -94,34 +94,15 @@ export default function LoginSBPage() {
         },
       ]);
 
-        if (userData.role === "client") {
-      const { data: planData, error: planError } = await supabase
-        .from("users")
-        .select("plan")
-        .eq("id", userId)
-        .maybeSingle();
+    const roleRedirects = {
+      client: '/client-dashboard/client-dashboard_checkin', // ✅ 初回はここへ
+      agency: '/agency-dashboard',
+      user: '/user-dashboard',
+      admin: '/admin-dashboard',
+    };
 
-      if (planError) {
-        console.warn("プラン取得失敗:", planError.message);
-        router.replace("/client-dashboard/client-dashboard_checkin"); // fallback
-        return;
-      }
-
-      if (planData?.plan === "premium" || planData?.plan === "trial") {
-        router.replace("/client-dashboard"); // ✅ 課金 or トライアル中ならダッシュボード
-      } else {
-        router.replace("/client-dashboard/client-dashboard_checkin"); // ✅ 無料 or 登録中
-      }
-    } else {
-      const roleRedirects = {
-        agency: '/agency-dashboard',
-        user: '/user-dashboard',
-        admin: '/admin-dashboard',
-      };
-      const redirectTo = roleRedirects[userData.role] || '/dashboard';
-      router.replace(redirectTo);
-    }
-
+    const redirectTo = roleRedirects[userData.role] || '/dashboard';
+    router.replace(redirectTo);
   };
 
   return (

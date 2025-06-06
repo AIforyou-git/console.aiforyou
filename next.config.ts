@@ -5,11 +5,13 @@ const isTurbopack = process.env.TURBOPACK === 'true';
 const nextConfig: NextConfig = {
   reactStrictMode: true,
 
+  
+
   ...(isTurbopack
     ? {}
     : {
         webpack(config, options) {
-          // ここに必要なWebpackのカスタムがあれば書いてOK
+          // 必要に応じて Webpack のカスタム設定を書く
           return config;
         },
       }),
