@@ -7,21 +7,21 @@ export default function Settings() {
     {
       icon: "fas fa-envelope",
       title: "メール設定",
-      desc: "メールテンプレート編集・自動送信設定",
+      desc: "自動送信設定・メール送信先",
       href: "/client-dashboard/settings/email",
     },
     {
       icon: "fas fa-credit-card",
-      title: "支払い設定",
-      desc: "プラン変更・支払い履歴",
+      title: "ご契約内容",
+      desc: "プラン内容・ご解約について",
       href: "/client-dashboard/settings/billing",
     },
-    {
-      icon: "fas fa-bell",
-      title: "通知設定",
-      desc: "メール通知・重要なお知らせ",
-      href: "/client-dashboard/settings/notification",
-    },
+    //{
+    //  icon: "fas fa-bell",
+    //  title: "通知設定",
+    //  desc: "メール通知・重要なお知らせ",
+    //  href: "/client-dashboard/settings/notification",
+    //},
     {
       icon: "fas fa-user",
       title: "アカウント設定",

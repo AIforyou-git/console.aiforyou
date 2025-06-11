@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { handleSubscriptionEvent } from "@/lib/stripeHandlers/subscription";
+import { handleInvoiceEvent } from "@/lib/stripeHandlers/invoice";
+import { handleCustomerEvent } from "@/lib/stripeHandlers/customer";
 
 export const config = {
   api: {
@@ -10,8 +13,6 @@ export const config = {
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
-
-// ✅ NODE_ENVに応じてWebhook Secretを切り替える
 const endpointSecret =
   process.env.NODE_ENV === "production"
     ? process.env.STRIPE_WEBHOOK_SECRET_PROD!
@@ -26,75 +27,108 @@ export async function POST(req: NextRequest) {
 
   try {
     if (!sig) throw new Error("Missing signature");
-
     event = stripe.webhooks.constructEvent(rawBody, sig, endpointSecret);
   } catch (err: any) {
     console.error("❌ Webhook署名エラー:", err.message);
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
-  if (event.type === "checkout.session.completed") {
-    const session = event.data.object as Stripe.Checkout.Session;
+  switch (event.type) {
+    case "customer.created":
+    case "customer.updated":
+      await handleCustomerEvent(event);
+      break;
 
-    const userId = session.metadata?.user_id;
-    const priceId = session.metadata?.price_id;
+    case "checkout.session.completed": {
+      const session = event.data.object as Stripe.Checkout.Session;
 
-    if (!userId || !priceId) {
-      console.warn("⚠ metadata に user_id または price_id がありません");
-      return NextResponse.json({ error: "Missing metadata" }, { status: 400 });
-    }
+      const userId = session.metadata?.user_id;
+      const priceId = session.metadata?.price_id;
+      const planIdMeta = session.metadata?.plan_id;
 
-    // プラン情報を取得（billing_cycle）
-    const { data: planData, error: planError } = await supabaseAdmin
-      .from("plans")
-      .select("id, billing_cycle")
-      .eq("stripe_price_id", priceId)
-      .single();
-
-    if (planError || !planData) {
-      console.error("❌ プラン取得失敗:", planError?.message || "データなし");
-      return NextResponse.json({ error: "Plan not found" }, { status: 500 });
-    }
-
-    // ユーザーのプランを更新
-    const { error: userUpdateError } = await supabaseAdmin
-      .from("users")
-      .update({ plan: "premium" })
-      .eq("id", userId);
-
-    if (userUpdateError) {
-      console.error("❌ ユーザープラン更新失敗:", userUpdateError.message);
-      return NextResponse.json({ error: "User update failed" }, { status: 500 });
-    }
-
-    // サブスクリプション登録（重複防止）
-    const { data: existing, error: fetchError } = await supabaseAdmin
-      .from("subscriptions")
-      .select("id")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(1);
-
-    if (!existing?.length) {
-      const { error: insertError } = await supabaseAdmin.from("subscriptions").insert([
-        {
-          user_id: userId,
-          plan_id: planData.id,
-          plan_type: planData.billing_cycle,
-          payment_count: 0,
-          cancel_scheduled: false,
-          status: "active",
-          stripe_subscription_id: session.subscription,
-        },
-      ]);
-
-      if (insertError) {
-        console.error("❌ サブスクリプション登録失敗:", insertError.message);
-        return NextResponse.json({ error: "Subscription insert failed" }, { status: 500 });
+      if (!userId || !priceId || !planIdMeta) {
+        console.warn("⚠ metadata に必要な情報が不足: user_id, price_id, plan_id");
+        return NextResponse.json({ error: "Missing metadata" }, { status: 400 });
       }
-    } else {
-      console.log("✅ 既存サブスクリプションあり、挿入スキップ");
+
+      const now = new Date().toISOString();
+      const customerEmail = session.customer_email as string;
+      const subscriptionId = session.subscription as string;
+      const customerId = session.customer as string;
+
+      const { data: planData, error: planError } = await supabaseAdmin
+        .from("plans")
+        .select("id, billing_cycle")
+        .eq("stripe_price_id", priceId)
+        .single();
+
+      if (planError || !planData) {
+        console.error("❌ プラン取得失敗:", planError?.message || "データなし");
+        return NextResponse.json({ error: "Plan not found" }, { status: 500 });
+      }
+
+      const planId = planData.id;
+      const planType = planData.billing_cycle;
+
+      const { data: pastTrials } = await supabaseAdmin
+        .from("subscriptions")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("has_trialed", true);
+
+      const isFirstTrial = !pastTrials || pastTrials.length === 0;
+
+      const { error: rpcError } = await supabaseAdmin.rpc("apply_subscription_update", {
+        p_user_id: userId,
+        p_email: customerEmail,
+        p_stripe_subscription_id: subscriptionId,
+        p_stripe_customer_id: customerId,
+        p_plan_id: planId,
+        p_plan_type: planType,
+        p_status: "active",
+        p_payment_count: 0,
+        p_cancel_scheduled: false,
+        p_has_trialed: isFirstTrial,
+        p_trial_started_at: isFirstTrial ? now : null,
+        p_trial_type: isFirstTrial ? "initial" : "none"
+      });
+
+      if (rpcError) {
+        console.error("❌ apply_subscription_update RPC エラー:", rpcError.message);
+        return NextResponse.json({ error: "Subscription update failed" }, { status: 500 });
+      }
+
+      break;
     }
+
+    case "customer.subscription.created":
+    case "customer.subscription.updated":
+    case "customer.subscription.deleted":
+      await handleSubscriptionEvent(event);
+      break;
+
+    case "invoice.payment_succeeded":
+    case "invoice.payment_failed": {
+      const invoice = event.data.object as Stripe.Invoice;
+      const subscriptionId = invoice.subscription;
+
+      const { data: existing, error } = await supabaseAdmin
+        .from("stripe_subscriptions")
+        .select("id")
+        .eq("stripe_subscription_id", subscriptionId)
+        .single();
+
+      if (!existing || error) {
+        console.warn("⚠ サブスクリプション未登録、invoice処理スキップ:", subscriptionId);
+        break;
+      }
+
+      await handleInvoiceEvent(event);
+      break;
+    }
+
+    default:
+      console.log(`ℹ️ 未処理イベント: ${event.type}`);
   }
 
   return NextResponse.json({ received: true });

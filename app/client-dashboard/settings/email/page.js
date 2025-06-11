@@ -75,7 +75,7 @@ export default function EmailSettings() {
       <h1 className="text-xl font-bold mb-4">メール設定</h1>
       <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
         <div>
-          <label className="block mb-1">自動送信</label>
+          <label className="block mb-1">自動送信　※準備中</label>
           <select
             className="w-full p-2 border rounded"
             value={autoMailEnabled ? "on" : "off"}
@@ -86,13 +86,13 @@ export default function EmailSettings() {
           </select>
         </div>
 
-        <div>
+       {/* <div>
           <label className="block mb-1">アンケート送信　※市区町村に差し替え</label>
           <input type="text" className="w-full p-2 border rounded" placeholder="例: 満足度調査2025年春" />
-        </div>
+        </div>*/}
 
         <div>
-          <label className="block mb-1">CC追加（最大2人）</label>
+          <label className="block mb-1">CC追加（最大2人）※準備中</label>
           <input type="email" className="w-full p-2 border rounded mb-2" placeholder="例: cc@example.com" />
           <input type="email" className="w-full p-2 border rounded" placeholder="例: cc2@example.com" />
         </div>

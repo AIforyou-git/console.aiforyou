@@ -64,6 +64,11 @@ export default function UserManagement() {
             ➕ 新規ユーザー登録
           </button>
         </Link>
+        <Link href="/admin-dashboard/users/subscriptions">
+  <button className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
+    📄 課金状況を見る
+  </button>
+</Link>
 
         <Link href="/admin-dashboard">
           <button className="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400">

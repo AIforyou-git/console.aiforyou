@@ -5,18 +5,31 @@ import { supabase } from "@/lib/supabaseBrowserClient";
 
 const plans = [
   {
-    id: "monthly", // ✅ planId を追加
-    name: "クライアント月額プラン",
-    priceId: "price_1RVwIED5qWmp0L96lJ00QsSg",
-    description: "いつでも解約可能な月額プラン（¥5,500/月）",
+    id: "monthly",
+    name: "クライアント月額プラン（トライアル付き）",
+    priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_MONTHLY || "",
+    description: "毎月請求されるクライアント向けの標準プランです。",
   },
   {
-    id: "yearly", // ✅ planId を追加
-    name: "クライアント年間縛りプラン（トライアル付き）",
-    priceId: "price_1RI48hD5qWmp0L96WigF3WMB",
-    description: "15日間の無料トライアル後、12ヶ月継続契約（¥4,980/月）",
+    id: "yearly",
+    name: "クライアント年間縛りプラン",
+    priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_YEARLY || "",
+    description: "1年間の契約が必要な割引プランです。",
+  },
+  {
+    id: "agency_yearly",
+    name: "AG 年間プラン",
+    priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_AGENCY_YEARLY || "",
+    description: "代理店専用の年間契約プランです。",
+  },
+  {
+    id: "test_free",
+    name: "0円テストプラン",
+    priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_TEST_FREE || "",
+    description: "テスト用の無料プランです。",
   },
 ];
+
 
 export default function SelectPlanPage(): React.JSX.Element {
   const [loading, setLoading] = useState<string | null>(null);
@@ -42,7 +55,7 @@ export default function SelectPlanPage(): React.JSX.Element {
           "Content-Type": "application/json",
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ priceId, planId }), // ✅ planId も送信
+        body: JSON.stringify({ priceId, planId }),
       });
 
       const data = await res.json();
@@ -79,7 +92,7 @@ export default function SelectPlanPage(): React.JSX.Element {
             </h2>
             <p className="text-gray-700 mb-4">{plan.description}</p>
             <button
-              onClick={() => handleCheckout(plan.priceId, plan.id)} // ✅ planId を渡す
+              onClick={() => handleCheckout(plan.priceId, plan.id)}
               disabled={loading === plan.priceId}
               className="bg-gradient-to-r from-emerald-400 to-green-500 hover:from-emerald-500 hover:to-green-600 text-white font-semibold py-2 px-6 rounded-full shadow-md transition disabled:opacity-50"
             >

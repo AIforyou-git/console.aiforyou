@@ -37,6 +37,7 @@ function LayoutContent({ children }) {
     HeaderComponent = HeaderUser;
   } else if (pathname.startsWith("/client-dashboard")) {
     HeaderComponent = HeaderClient;
+    
   } else if (pathname.startsWith("/agency-dashboard")) {
     HeaderComponent = HeaderAgency;
   }
