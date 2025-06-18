@@ -1,4 +1,3 @@
-// app/layout.js
 "use client";
 
 import { usePathname } from "next/navigation";
@@ -14,28 +13,32 @@ import "../styles/globals.css";
 
 function LayoutContent({ children }) {
   const pathname = usePathname();
-  const { loading } = useAuth(); // ✅ 認証状態の取得
 
-  // ✅ loading 中は画面を白にして描画抑制（ちらつき・null崩壊防止）
-  if (loading) {
-    return <div className="w-screen h-screen bg-white" />;
-  }
-
+  // ✅ 認証が不要なパス一覧
   const suppressHeaderPaths = [
-  "/signup-sb",
-  "/login-sb",
-  
-  "/reset-password" // ← ✅ 必須
-];
+    "/signup-sb",
+    "/login-sb"
+  ];
 
+  const isBypassAuth = pathname === "/reset-password"; // ✅ セッション取得スキップ対象を明示
   const isSuppressed = suppressHeaderPaths.some((p) =>
     pathname.startsWith(p)
   );
 
-  if (pathname === "/preparing" || isSuppressed) {
+  // ✅ 認証取得は必要なときのみ実行
+  const { loading } = isBypassAuth ? { loading: false } : useAuth();
+
+  // ✅ セッション待機中は白画面（ただし /reset-password は除外済）
+  if (loading) {
+    return <div className="w-screen h-screen bg-white" />;
+  }
+
+  // ✅ ヘッダーを抑制するページ
+  if (pathname === "/preparing" || isSuppressed || isBypassAuth) {
     return <main className="pt-8 px-6">{children}</main>;
   }
 
+  // ✅ ロールに応じたヘッダー切替
   let HeaderComponent = null;
   if (pathname.startsWith("/admin-dashboard")) {
     HeaderComponent = HeaderAdmin;
@@ -43,7 +46,6 @@ function LayoutContent({ children }) {
     HeaderComponent = HeaderUser;
   } else if (pathname.startsWith("/client-dashboard")) {
     HeaderComponent = HeaderClient;
-    
   } else if (pathname.startsWith("/agency-dashboard")) {
     HeaderComponent = HeaderAgency;
   }
@@ -54,7 +56,6 @@ function LayoutContent({ children }) {
       <main className="pt-8 px-6">{children}</main>
     </>
   );
-  
 }
 
 export default function RootLayout({ children }) {
