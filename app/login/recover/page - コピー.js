@@ -11,8 +11,8 @@ export default function PasswordResetRequestPage() {
     setMessage('送信中...');
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-  redirectTo: 'https://console.aiforyou.jp/auth/callback', // ← 中継ページを使う
-});
+      redirectTo: 'https://console.aiforyou.jp/login/recover/reset-password',
+    });
 
     if (error) {
       setMessage('❌ エラー: ' + error.message);
