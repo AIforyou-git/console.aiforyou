@@ -21,11 +21,7 @@ function LayoutContent({ children }) {
     return <div className="w-screen h-screen bg-white" />;
   }
 
-  const suppressHeaderPaths = [
-  "/signup-sb",
-  "/login-sb",
-  "/login/recover/reset-password"  // ← ✅ ここを追加
-];
+  const suppressHeaderPaths = ["/signup-sb", "/login-sb"];
   const isSuppressed = suppressHeaderPaths.some((p) =>
     pathname.startsWith(p)
   );
