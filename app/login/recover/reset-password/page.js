@@ -11,29 +11,49 @@ export default function ResetPasswordPage() {
   const [tokenProcessed, setTokenProcessed] = useState(false);
 
   useEffect(() => {
-    const hash = window.location.hash;
-    if (hash.includes('access_token')) {
-      const queryString = hash.substring(1); // remove '#'
-      const params = new URLSearchParams(queryString);
-      const access_token = params.get('access_token');
-      const refresh_token = params.get('refresh_token');
+    const processToken = async () => {
+      const hash = window.location.hash;
 
-      if (access_token && refresh_token) {
-        supabase.auth.setSession({ access_token, refresh_token }).then(({ error }) => {
+      // ✅ ハッシュ付きトークン（#access_token=...）対応（Magic Linkなど）
+      if (hash.includes('access_token')) {
+        const queryString = hash.substring(1); // remove '#'
+        const params = new URLSearchParams(queryString);
+        const access_token = params.get('access_token');
+        const refresh_token = params.get('refresh_token');
+
+        if (access_token && refresh_token) {
+          const { error } = await supabase.auth.setSession({ access_token, refresh_token });
           if (error) {
-            console.error('セッション設定エラー:', error);
-            setMessage('❌ トークン処理に失敗しました。');
+            console.error('setSession エラー:', error);
+            setMessage('❌ セッションの復元に失敗しました。');
+          } else {
+            setTokenProcessed(true);
           }
-          setTokenProcessed(true);
-        });
-      } else {
-        setMessage('❌ トークンが無効です。');
-        setTokenProcessed(true);
+        } else {
+          setMessage('❌ トークンが無効です。');
+        }
+        return;
       }
-    } else {
-      setMessage('❌ パスワード再設定リンクが無効か、セッションが見つかりません。');
-      setTokenProcessed(true);
-    }
+
+      // ✅ クエリ付きトークン（?token=...&type=recovery）対応（verifyOtp方式）
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get('token');
+      const type = params.get('type');
+
+      if (token && type === 'recovery') {
+        const { error } = await supabase.auth.verifyOtp({ type: 'recovery', token });
+        if (error) {
+          console.error('verifyOtp エラー:', error);
+          setMessage('❌ 認証に失敗しました。リンクが無効または期限切れです。');
+        } else {
+          setTokenProcessed(true);
+        }
+      } else {
+        setMessage('❌ パスワード再設定リンクが無効か、トークンが見つかりません。');
+      }
+    };
+
+    processToken();
   }, []);
 
   const handlePasswordUpdate = async () => {
