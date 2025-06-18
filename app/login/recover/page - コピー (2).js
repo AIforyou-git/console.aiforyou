@@ -1,3 +1,4 @@
+// app/login/recover/page.js
 'use client';
 
 import { useState } from 'react';
@@ -10,8 +11,9 @@ export default function PasswordResetRequestPage() {
   const handleReset = async () => {
     setMessage('送信中...');
 
-    // ✅ redirectTo なし（標準フロー）
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: 'https://console.aiforyou.jp/login/recover/reset-password', // ✅ callbackを経由せず直接再設定ページへ
+    });
 
     if (error) {
       setMessage('❌ エラー: ' + error.message);
@@ -24,9 +26,7 @@ export default function PasswordResetRequestPage() {
     <div className="flex items-center justify-center min-h-screen bg-gray-50 px-4">
       <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-md text-center space-y-4">
         <h1 className="text-xl font-bold">パスワードをお忘れですか？</h1>
-        <p className="text-sm text-gray-600">
-          ご登録のメールアドレスを入力してください。再設定リンクをお送りします。
-        </p>
+        <p className="text-sm text-gray-600">ご登録のメールアドレスを入力してください。再設定リンクをお送りします。</p>
         <input
           type="email"
           placeholder="メールアドレス"

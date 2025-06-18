@@ -1,45 +1,47 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { createBrowserSupabaseClient } from '@supabase/auth-helpers-nextjs';
+import { useRouter } from 'next/navigation';
 
 export default function ResetPasswordPage() {
   const supabase = createBrowserSupabaseClient();
   const router = useRouter();
-
   const [newPassword, setNewPassword] = useState('');
   const [message, setMessage] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [isSessionReady, setIsSessionReady] = useState(false);
+  const [tokenProcessed, setTokenProcessed] = useState(false);
 
-  // ✅ Supabaseのセッションがすでにあるかを確認（verifyOtpは不要）
   useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      if (session && session.user) {
-        setIsSessionReady(true);
+    const processToken = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get('token');
+      const type = params.get('type');
+
+      if (token && type === 'recovery') {
+        const { error } = await supabase.auth.verifyOtp({ type: 'recovery', token });
+        if (error) {
+          console.error('verifyOtp エラー:', error);
+          setMessage('❌ 認証に失敗しました。リンクが無効または期限切れです。');
+        } else {
+          setTokenProcessed(true);
+        }
       } else {
-        setMessage('❌ パスワード再設定リンクが無効か、セッションが見つかりません。');
+        setMessage('❌ パスワード再設定リンクが無効か、トークンが見つかりません。');
       }
     };
 
-    checkSession();
+    processToken();
   }, []);
 
   const handlePasswordUpdate = async () => {
-    setIsProcessing(true);
-    setMessage('');
-
     const { error } = await supabase.auth.updateUser({ password: newPassword });
-
-    setIsProcessing(false);
-
     if (error) {
       setMessage(`❌ パスワード更新失敗: ${error.message}`);
     } else {
       setMessage('✅ パスワードを更新しました。ログイン画面に移動します...');
-      setTimeout(() => router.push('/login'), 2000);
+      setTimeout(() => {
+        router.push('/login');
+      }, 2000);
     }
   };
 
@@ -47,7 +49,6 @@ export default function ResetPasswordPage() {
     <div className="flex items-center justify-center min-h-screen bg-gray-100 px-4">
       <div className="bg-white p-6 rounded shadow-md w-full max-w-md text-center space-y-4">
         <h1 className="text-lg font-bold">🔐 新しいパスワードを設定</h1>
-
         <input
           type="password"
           value={newPassword}
@@ -55,15 +56,13 @@ export default function ResetPasswordPage() {
           placeholder="新しいパスワード"
           className="w-full border px-4 py-2 rounded"
         />
-
         <button
           onClick={handlePasswordUpdate}
-          disabled={!isSessionReady || isProcessing || !newPassword}
+          disabled={!tokenProcessed || !newPassword}
           className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:opacity-50"
         >
-          {isProcessing ? '更新中...' : 'パスワードを更新する'}
+          パスワードを更新する
         </button>
-
         {message && <p className="text-sm mt-2 text-red-600">{message}</p>}
       </div>
     </div>
