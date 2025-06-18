@@ -10,8 +10,10 @@ export default function PasswordResetRequestPage() {
   const handleReset = async () => {
     setMessage('送信中...');
 
-    // ✅ redirectTo なし（標準フロー）
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
+   
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+  redirectTo: 'https://console.aiforyou.jp/reset-password'
+ });
 
     if (error) {
       setMessage('❌ エラー: ' + error.message);
