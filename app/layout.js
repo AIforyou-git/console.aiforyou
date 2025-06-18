@@ -24,8 +24,10 @@ function LayoutContent({ children }) {
   const suppressHeaderPaths = [
   "/signup-sb",
   "/login-sb",
-  "/login/recover/reset-password"  // ← ✅ ここを追加
+  "/login/recover/reset-password",
+  "/auth/callback" // ✅ ← これを追加
 ];
+
   const isSuppressed = suppressHeaderPaths.some((p) =>
     pathname.startsWith(p)
   );
