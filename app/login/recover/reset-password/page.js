@@ -1,4 +1,5 @@
 'use client';
+
 import { useEffect, useState } from 'react';
 import { createBrowserSupabaseClient } from '@supabase/auth-helpers-nextjs';
 import { useRouter } from 'next/navigation';
@@ -12,30 +13,6 @@ export default function ResetPasswordPage() {
 
   useEffect(() => {
     const processToken = async () => {
-      const hash = window.location.hash;
-
-      // ✅ ハッシュ付きトークン（#access_token=...）対応（Magic Linkなど）
-      if (hash.includes('access_token')) {
-        const queryString = hash.substring(1); // remove '#'
-        const params = new URLSearchParams(queryString);
-        const access_token = params.get('access_token');
-        const refresh_token = params.get('refresh_token');
-
-        if (access_token && refresh_token) {
-          const { error } = await supabase.auth.setSession({ access_token, refresh_token });
-          if (error) {
-            console.error('setSession エラー:', error);
-            setMessage('❌ セッションの復元に失敗しました。');
-          } else {
-            setTokenProcessed(true);
-          }
-        } else {
-          setMessage('❌ トークンが無効です。');
-        }
-        return;
-      }
-
-      // ✅ クエリ付きトークン（?token=...&type=recovery）対応（verifyOtp方式）
       const params = new URLSearchParams(window.location.search);
       const token = params.get('token');
       const type = params.get('type');
