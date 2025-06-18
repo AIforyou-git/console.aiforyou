@@ -5,38 +5,33 @@ import { supabase } from "@/lib/supabaseBrowserClient";
 
 const plans = [
   {
-    id: "monthly",
+    id: process.env.NEXT_PUBLIC_PLAN_ID_MONTHLY ?? "",
     name: "クライアント月額プラン（トライアル付き）",
-    priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_MONTHLY || "",
     description: "毎月請求されるクライアント向けの標準プランです。",
   },
   {
-    id: "yearly",
+    id: process.env.NEXT_PUBLIC_PLAN_ID_YEARLY ?? "",
     name: "クライアント年間縛りプラン",
-    priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_YEARLY || "",
     description: "1年間の契約が必要な割引プランです。",
   },
   {
-    id: "agency_yearly",
+    id: process.env.NEXT_PUBLIC_PLAN_ID_AGENCY_YEARLY ?? "",
     name: "AG 年間プラン",
-    priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_AGENCY_YEARLY || "",
     description: "代理店専用の年間契約プランです。",
   },
   {
-    id: "test_free",
+    id: process.env.NEXT_PUBLIC_PLAN_ID_TEST_FREE ?? "",
     name: "0円テストプラン",
-    priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_TEST_FREE || "",
     description: "テスト用の無料プランです。",
   },
 ];
-
 
 export default function SelectPlanPage(): React.JSX.Element {
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string>("");
 
-  const handleCheckout = async (priceId: string, planId: string) => {
-    setLoading(priceId);
+  const handleCheckout = async (planId: string) => {
+    setLoading(planId);
     setError("");
 
     try {
@@ -55,7 +50,7 @@ export default function SelectPlanPage(): React.JSX.Element {
           "Content-Type": "application/json",
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ priceId, planId }),
+        body: JSON.stringify({ planId }),
       });
 
       const data = await res.json();
@@ -84,7 +79,7 @@ export default function SelectPlanPage(): React.JSX.Element {
       <div className="space-y-6">
         {plans.map((plan) => (
           <div
-            key={plan.priceId}
+            key={plan.id}
             className="border rounded-xl p-6 shadow-sm text-left bg-white"
           >
             <h2 className="text-lg font-semibold text-emerald-800 mb-1">
@@ -92,11 +87,11 @@ export default function SelectPlanPage(): React.JSX.Element {
             </h2>
             <p className="text-gray-700 mb-4">{plan.description}</p>
             <button
-              onClick={() => handleCheckout(plan.priceId, plan.id)}
-              disabled={loading === plan.priceId}
+              onClick={() => handleCheckout(plan.id)}
+              disabled={loading === plan.id}
               className="bg-gradient-to-r from-emerald-400 to-green-500 hover:from-emerald-500 hover:to-green-600 text-white font-semibold py-2 px-6 rounded-full shadow-md transition disabled:opacity-50"
             >
-              {loading === plan.priceId ? "処理中..." : "このプランを選択する"}
+              {loading === plan.id ? "処理中..." : "このプランを選択する"}
             </button>
           </div>
         ))}

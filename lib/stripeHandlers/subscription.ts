@@ -1,4 +1,3 @@
-// lib/stripeHandlers/subscription.ts
 import Stripe from "stripe";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
@@ -9,6 +8,10 @@ export async function handleSubscriptionEvent(event: Stripe.Event) {
     console.warn("⚠️ Subscription ID または Customer ID が不足");
     return;
   }
+
+  const canceledAt = subscription.canceled_at
+    ? new Date(subscription.canceled_at * 1000).toISOString()
+    : null;
 
   const record = {
     stripe_subscription_id: subscription.id,
@@ -24,9 +27,7 @@ export async function handleSubscriptionEvent(event: Stripe.Event) {
     cancel_at: subscription.cancel_at
       ? new Date(subscription.cancel_at * 1000).toISOString()
       : null,
-    canceled_at: subscription.canceled_at
-      ? new Date(subscription.canceled_at * 1000).toISOString()
-      : null,
+    canceled_at: canceledAt,
     is_active: subscription.status === "active" || subscription.status === "trialing",
     updated_at: new Date().toISOString(),
   };
@@ -41,15 +42,19 @@ export async function handleSubscriptionEvent(event: Stripe.Event) {
     console.log("✅ stripe_subscriptions updated:", subscription.id);
   }
 
-  // ✅ subscriptions テーブルにも cancel_scheduled を同期
+  // ✅ subscriptions テーブルに cancel_scheduled, canceled_at, is_active を同期
   const { error: subError } = await supabaseAdmin
     .from("subscriptions")
-    .update({ cancel_scheduled: subscription.cancel_at_period_end })
+    .update({
+      cancel_scheduled: subscription.cancel_at_period_end,
+      canceled_at: canceledAt,
+      is_active: subscription.status === "active" || subscription.status === "trialing"
+    })
     .eq("stripe_subscription_id", subscription.id);
 
   if (subError) {
     console.error("❌ subscriptions 更新失敗:", subError.message);
   } else {
-    console.log("✅ subscriptions テーブルにも cancel_scheduled を同期:", subscription.id);
+    console.log("✅ subscriptions テーブル更新（cancel_scheduled + canceled_at + is_active）:", subscription.id);
   }
 }

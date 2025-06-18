@@ -61,9 +61,17 @@ export default function ClientDashboard() {
     ? "解約済み"
     : subscription?.cancel_scheduled
     ? "解約予約中"
-    : subscription?.is_active
+    : ["active", "trialing"].includes(subscription?.status)
     ? "継続中"
     : "停止中";
+
+  const trialStatus = subscription?.trial_type === "initial"
+    ? `トライアル中（${dayjs(subscription.trial_started_at).add(1, 'day').format("YYYY/MM/DD")}まで）`
+    : "―";
+
+  const nextBillingDate = subscription?.current_period_end
+    ? dayjs(subscription.current_period_end).format("YYYY/MM/DD")
+    : "―";
 
   return (
     <div className="p-6 max-w-2xl mx-auto">
@@ -76,6 +84,8 @@ export default function ClientDashboard() {
       <FormField label="プラン" value={subscription?.plan_type || "―"} />
       <FormField label="契約日" value={dayjs(subscription?.started_at).format("YYYY/MM/DD")} />
       <FormField label="状態" value={status} />
+      <FormField label="トライアル" value={trialStatus} />
+      <FormField label="次回請求予定日" value={nextBillingDate} />
 
       <div className="mt-10 text-sm bg-gray-100 p-4 rounded border border-gray-200">
         <p className="mb-3 text-gray-700">

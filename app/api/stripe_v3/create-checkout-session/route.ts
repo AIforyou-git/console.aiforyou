@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
-import { supabaseAdmin } from "@/lib/supabaseAdmin"; // 管理者クライアント
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 export async function POST(req: NextRequest) {
   try {
-    const { priceId, planId } = await req.json();
+    const { planId } = await req.json();
 
-    if (!priceId || !planId) {
-      return NextResponse.json({ error: "priceId と planId は必須です" }, { status: 400 });
+    if (!planId) {
+      return NextResponse.json({ error: "planId は必須です" }, { status: 400 });
     }
 
     const authHeader = req.headers.get("Authorization");
@@ -38,6 +38,28 @@ export async function POST(req: NextRequest) {
 
     const hasTrialed = previousSubs && previousSubs.length > 0;
 
+    const { data: planData, error: planError } = await supabaseAdmin
+      .from("plans")
+      .select("stripe_price_id, trial_days")
+      .eq("id", planId)
+      .single();
+
+    if (planError || !planData) {
+      console.error("❌ プラン情報の取得失敗:", planError?.message || "データなし");
+      return NextResponse.json({ error: "プラン情報が見つかりません" }, { status: 500 });
+    }
+
+    const priceId = planData.stripe_price_id;
+    if (!priceId) {
+      console.error("❌ stripe_price_id が未定義です");
+      return NextResponse.json({ error: "Price ID が設定されていません" }, { status: 500 });
+    }
+
+    const trialPeriodDays =
+      !hasTrialed && planData.trial_days && planData.trial_days > 0
+        ? planData.trial_days
+        : undefined;
+
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       line_items: [{ price: priceId, quantity: 1 }],
@@ -49,7 +71,9 @@ export async function POST(req: NextRequest) {
         price_id: priceId,
         plan_id: planId,
       },
-      // NOTE: trial_from_plan は存在しないプロパティなので削除済み
+      subscription_data: trialPeriodDays
+        ? { trial_period_days: trialPeriodDays }
+        : undefined,
     });
 
     return NextResponse.json({ url: session.url });

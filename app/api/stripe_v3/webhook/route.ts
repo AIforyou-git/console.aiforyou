@@ -107,10 +107,23 @@ export async function POST(req: NextRequest) {
       await handleSubscriptionEvent(event);
       break;
 
-    case "invoice.payment_succeeded":
+     case "invoice.payment_succeeded":
+    case "invoice.paid":
     case "invoice.payment_failed": {
       const invoice = event.data.object as Stripe.Invoice;
-      const subscriptionId = invoice.subscription;
+      console.log("🧾 受信した invoice オブジェクト:", JSON.stringify(invoice, null, 2));
+
+      // 👇 修正点：型安全に parent 経由で subscriptionId を補完
+      const parent = (invoice as any).parent;
+
+      const subscriptionId =
+        invoice.subscription ??
+        (parent?.subscription_details?.subscription as string | undefined);
+
+      if (!subscriptionId) {
+        console.warn("⚠ サブスクリプションID取得失敗、invoice処理スキップ:", invoice.id);
+        break;
+      }
 
       const { data: existing, error } = await supabaseAdmin
         .from("stripe_subscriptions")

@@ -8,7 +8,11 @@ export default function AccountSettings() {
   const supabase = createBrowserSupabaseClient();
   const [user, setUser] = useState(null);
   const [email, setEmail] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -24,18 +28,29 @@ export default function AccountSettings() {
     fetchUser();
   }, []);
 
-  const handlePasswordReset = async () => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
+  const handlePasswordChange = async () => {
+    setMessage('');
+    setError('');
+
+    if (newPassword !== confirmPassword) {
+      setError('❌ 新しいパスワードと確認用パスワードが一致しません');
+      return;
+    }
+
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
     if (error) {
-      setMessage(`❌ エラー: ${error.message}`);
+      setError(`❌ エラー: ${error.message}`);
     } else {
-      setMessage('✅ ご自身のメールアドレスにリセットメールを送信しました');
+      setMessage('✅ パスワードを更新しました');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
     }
   };
 
   return (
     <div className="p-6 max-w-xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">⚙️ アカウント設定（Supabase）</h1>
+      <h1 className="text-2xl font-bold mb-6">⚙️ アカウント設定（Admin）</h1>
 
       <div className="mb-6">
         <label className="block text-sm font-medium mb-2">📧 登録中のメールアドレス</label>
@@ -48,19 +63,34 @@ export default function AccountSettings() {
       </div>
 
       <div className="mb-6">
-        <label className="block text-sm font-medium mb-1">🔑 パスワードリセット</label>
-        <p className="text-xs text-gray-500 mb-2">
-          ※ 現在ログインしている管理者自身のメールアドレス宛に送信されます
-        </p>
-        <button
-          onClick={handlePasswordReset}
-          className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 text-sm"
-        >
-          リセットメールを送信
-        </button>
+        <label className="block text-sm font-medium mb-2">🔑 新しいパスワード</label>
+        <input
+          type="password"
+          value={newPassword}
+          onChange={(e) => setNewPassword(e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+        />
       </div>
 
-      {message && <p className="text-sm text-green-700 font-medium mt-4">{message}</p>}
+      <div className="mb-6">
+        <label className="block text-sm font-medium mb-2">🔁 パスワード再入力</label>
+        <input
+          type="password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+        />
+      </div>
+
+      <button
+        onClick={handlePasswordChange}
+        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+      >
+        パスワードを変更
+      </button>
+
+      {message && <p className="text-green-600 text-sm mt-4">{message}</p>}
+      {error && <p className="text-red-600 text-sm mt-4">{error}</p>}
 
       <div className="mt-8">
         <Link href="/admin-dashboard">

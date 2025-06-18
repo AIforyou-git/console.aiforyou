@@ -1,3 +1,4 @@
+// app/login/recover/page.js
 'use client';
 import { useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
@@ -10,7 +11,7 @@ export default function PasswordResetRequestPage() {
     setMessage('送信中...');
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: 'https://console.aiforyou.jp/reset-password', // 必要に応じて変更
+      redirectTo: 'https://console.aiforyou.jp/login/recover/reset-password',
     });
 
     if (error) {
