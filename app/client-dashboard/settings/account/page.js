@@ -1,13 +1,20 @@
-// app/settings/account/page.js
 "use client";
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import dayjs from "dayjs";
 
+// ✅ モーダルは動的 import（SSR無効）
+//const EmailChangeModal = dynamic(
+ // () => import("./email-change/modal"),
+ // { ssr: false }
+//);
+
 export default function AccountSettings() {
   const [user, setUser] = useState(null);
   const [logins, setLogins] = useState([]);
+  const [message, setMessage] = useState(""); // ✅ パスワード更新ステータス
+  const [showModal, setShowModal] = useState(false); // ✅ モーダル表示制御
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -26,6 +33,23 @@ export default function AccountSettings() {
     fetchUser();
   }, []);
 
+  // ✅ パスワード再設定リンク送信処理
+  const handlePasswordReset = async () => {
+    if (!user?.email) return;
+
+    setMessage("送信中...");
+
+    const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+      redirectTo: 'https://console.aiforyou.jp/reset-password',
+    });
+
+    if (error) {
+      setMessage("❌ エラーが発生しました：" + error.message);
+    } else {
+      setMessage("✅ パスワード再設定メールを送信しました。メールをご確認ください。");
+    }
+  };
+
   return (
     <div className="p-6 max-w-2xl mx-auto">
       <h1 className="text-xl font-bold mb-6">アカウント設定</h1>
@@ -37,25 +61,20 @@ export default function AccountSettings() {
           disabled
           className="w-full p-2 border rounded bg-gray-100 text-gray-700"
         />
-        <p className="text-xs text-gray-500 mt-1">
-          クレジットカードに登録されているメールアドレスは変更されません。
-        </p>
-        <button
-          className="mt-2 text-sm text-blue-600 hover:underline"
-          onClick={() => alert("メールアドレス変更画面（今後実装）へ")}
-        >
-          メールアドレス変更はこちら  ※準備中
-        </button>
+        
       </div>
 
       <div className="mb-8">
         <label className="block mb-1 text-sm text-gray-600">パスワード</label>
         <button
-          onClick={() => alert("パスワード変更モーダル（今後実装）を開く")}
+          onClick={handlePasswordReset}
           className="px-4 py-2 bg-blue-600 text-white rounded text-sm"
         >
-          パスワードを変更する　　※準備中
+          パスワードを変更する
         </button>
+        {message && (
+          <p className="text-sm mt-2 text-green-600">{message}</p>
+        )}
       </div>
 
       <div>
@@ -66,9 +85,18 @@ export default function AccountSettings() {
               {dayjs(log.login_time).format("YYYY/MM/DD HH:mm")} - {log.ip_address}
             </li>
           ))}
-          {logins.length === 0 && <li className="text-gray-400">ログイン履歴がありません</li>}
+          {logins.length === 0 && (
+            <li className="text-gray-400">ログイン履歴がありません</li>
+          )}
         </ul>
       </div>
+
+      {showModal && (
+        <EmailChangeModal
+          currentEmail={user?.email}
+          onClose={() => setShowModal(false)}
+        />
+      )}
     </div>
   );
 }
