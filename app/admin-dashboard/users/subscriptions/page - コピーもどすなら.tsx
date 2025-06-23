@@ -4,9 +4,6 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import CancelSubscriptionButton from "@/components/Cancel/SubscriptionButton";
 import dayjs from "dayjs";
-import SubscriptionDetailModal from "@/components/SubscriptionDetailModal"; // モーダル（後で作る）
-import { fetchSubscriptionDetail } from "@/lib/fetchSubscriptionDetail";   // データ取得関数（後で作る）
-
 
 type Subscription = {
   id: string;
@@ -38,27 +35,12 @@ const [page, setPage] = useState<number>(1);
 const [totalPages, setTotalPages] = useState<number>(1);
 const [filterPlan, setFilterPlan] = useState<string>("");
 const [filterStatus, setFilterStatus] = useState<string>("");
-const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-const [detailData, setDetailData] = useState<any>(null);
-const [showModal, setShowModal] = useState(false);
 
   const pageSize = 20;
 
   useEffect(() => {
     fetchAllData(page);
   }, [page]);
-
-  const handleRowClick = async (userId: string) => {
-  setSelectedUserId(userId);
-  try {
-    const detail = await fetchSubscriptionDetail(userId);
-    setDetailData(detail);
-    setShowModal(true);
-  } catch (err) {
-    console.error("詳細取得に失敗", err);
-    setError("詳細情報の取得に失敗しました。");
-  }
-};
 
   const fetchAllData = async (currentPage: number) => {
     const from = (currentPage - 1) * pageSize;
@@ -174,11 +156,7 @@ const [showModal, setShowModal] = useState(false);
           </thead>
           <tbody>
             {subscriptions.map((sub) => (
-              <tr
-  key={sub.id}
-  className="border-t text-sm cursor-pointer hover:bg-gray-100"
-  onClick={() => handleRowClick(sub.user_id)}
->
+              <tr key={sub.id} className="border-t text-sm">
                 <td className="px-4 py-2">{sub.email}</td>
                 <td className="px-4 py-2">{sub.plan_type}</td>
                 <td className="px-4 py-2">
@@ -221,12 +199,6 @@ const [showModal, setShowModal] = useState(false);
           次へ
         </button>
       </div>
-     {showModal && detailData && (
-  <SubscriptionDetailModal
-    detail={detailData}
-    onClose={() => setShowModal(false)}
-  />
-)} 
     </div>
   );
 }
