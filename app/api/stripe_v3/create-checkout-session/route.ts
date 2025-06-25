@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
+console.log("🌍 NODE_ENV:", process.env.NODE_ENV);
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 export async function POST(req: NextRequest) {
@@ -38,10 +40,14 @@ export async function POST(req: NextRequest) {
 
     const hasTrialed = previousSubs && previousSubs.length > 0;
 
+    const currentEnv = process.env.NODE_ENV === "production" ? "production" : "test"; // ← ★環境を判定
+    
+
     const { data: planData, error: planError } = await supabaseAdmin
       .from("plans")
       .select("stripe_price_id, trial_days")
       .eq("id", planId)
+      .eq("env", currentEnv) // ← ★追加：環境ごとの制限
       .single();
 
     if (planError || !planData) {

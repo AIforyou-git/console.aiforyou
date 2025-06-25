@@ -6,13 +6,13 @@ import { supabase } from "@/lib/supabaseBrowserClient";
 const plans = [
   {
     id: process.env.NEXT_PUBLIC_PLAN_ID_MONTHLY ?? "",
-    name: "クライアント月額プラン（トライアル付き）",
-    description: "月額5,500円（税込み）毎月請求されるクライアント向けの標準プランです。15日間のトライアル期間が付与されます。",
+    name: "スタートプラン",
+    description: "月額5,500円（税込み）いつでも解約可能な柔軟な契約プランです。まずは気軽に始めたい方向け。15日間のトライアル期間が付与されます。",
   },
   {
     id: process.env.NEXT_PUBLIC_PLAN_ID_YEARLY ?? "",
-    name: "クライアント年間縛りプラン（トライアル付き）",
-    description: "月額4,980円（税込み）　1年間の契約が必要な割引プランです。15日間のトライアル期間が付与されます。",
+    name: "ベストバリュープラン",
+    description: "月額 4,980円（税込）× 12ヶ月固定。年間契約の長期割引プランです。長く使う方に最適。15日間のトライアル期間が付与されます。",
   },
   //時が来たら復活させる
   //{

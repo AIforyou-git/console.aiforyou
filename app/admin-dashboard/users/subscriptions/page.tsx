@@ -4,43 +4,19 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import CancelSubscriptionButton from "@/components/Cancel/SubscriptionButton";
 import dayjs from "dayjs";
-import SubscriptionDetailModal from "@/components/SubscriptionDetailModal"; // モーダル（後で作る）
-import { fetchSubscriptionDetail } from "@/lib/fetchSubscriptionDetail";   // データ取得関数（後で作る）
-
-
-type Subscription = {
-  id: string;
-  user_id: string;
-  plan_type: string;
-  started_at: string;
-  current_period_start: string | null;
-  canceled_at: string | null;
-  cancel_scheduled: boolean;
-  is_active: boolean;
-  payment_count: number;
-  stripe_subscription_id: string; // ✅ ←追加
-  email?: string;
-  trial?: boolean;
-  trialRemaining?: number;
-  status?: string;
-};
-
-type User = {
-  id: string;
-  email: string;
-};
+import SubscriptionDetailModal from "@/components/SubscriptionDetailModal";
+import { fetchSubscriptionDetail } from "@/lib/fetchSubscriptionDetail";
 
 export default function SubscriptionsAdminPage() {
- const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
-const [users, setUsers] = useState<User[]>([]);
-const [error, setError] = useState<string>("");
-const [page, setPage] = useState<number>(1);
-const [totalPages, setTotalPages] = useState<number>(1);
-const [filterPlan, setFilterPlan] = useState<string>("");
-const [filterStatus, setFilterStatus] = useState<string>("");
-const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-const [detailData, setDetailData] = useState<any>(null);
-const [showModal, setShowModal] = useState(false);
+  const [subscriptions, setSubscriptions] = useState<any[]>([]);
+  const [error, setError] = useState<string>("");
+  const [page, setPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [filterPlan, setFilterPlan] = useState<string>("");
+  const [filterStatus, setFilterStatus] = useState<string>("");
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [detailData, setDetailData] = useState<any>(null);
+  const [showModal, setShowModal] = useState(false);
 
   const pageSize = 20;
 
@@ -49,72 +25,75 @@ const [showModal, setShowModal] = useState(false);
   }, [page]);
 
   const handleRowClick = async (userId: string) => {
-  setSelectedUserId(userId);
-  try {
-    const detail = await fetchSubscriptionDetail(userId);
-    setDetailData(detail);
-    setShowModal(true);
-  } catch (err) {
-    console.error("詳細取得に失敗", err);
-    setError("詳細情報の取得に失敗しました。");
-  }
-};
+    setSelectedUserId(userId);
+    try {
+      const detail = await fetchSubscriptionDetail(userId);
+      setDetailData(detail);
+      setShowModal(true);
+    } catch (err) {
+      console.error("詳細取得に失敗", err);
+      setError("詳細情報の取得に失敗しました。");
+    }
+  };
 
   const fetchAllData = async (currentPage: number) => {
     const from = (currentPage - 1) * pageSize;
     const to = from + pageSize - 1;
 
-    const [subsRes, countRes, usersRes] = await Promise.all([
-      supabase
-        .from("subscriptions")
-        .select("*", { count: "exact" })
-        .order("created_at", { ascending: false })
-        .range(0, 999),
-      supabase
-        .from("subscriptions")
-        .select("id", { count: "exact", head: true }),
-      supabase.from("users").select("id, email"),
+    const [subsRes, stripeSubsRes, stripeCustomersRes, stripeInvoicesRes] = await Promise.all([
+      supabase.from("subscriptions").select("*"),
+      supabase.from("stripe_subscriptions").select("*"),
+      supabase.from("stripe_customers").select("*"),
+      supabase.from("stripe_invoices").select("*"),
     ]);
 
-    if (subsRes.error || usersRes.error || countRes.error) {
-      console.error("取得エラー:", subsRes.error || usersRes.error || countRes.error);
+    if (subsRes.error || stripeSubsRes.error || stripeCustomersRes.error || stripeInvoicesRes.error) {
+      console.error("取得エラー:", subsRes.error || stripeSubsRes.error || stripeCustomersRes.error || stripeInvoicesRes.error);
       setError("データ取得に失敗しました。");
-    } else {
-      const userMap = new Map(usersRes.data.map((u) => [u.id, u.email]));
-      const now = new Date();
-
-      const enriched = subsRes.data.map((s) => {
-        const trialEnd = s.current_period_start ? new Date(s.current_period_start) : null;
-        const inTrial = trialEnd && now < trialEnd;
-        const trialRemaining = inTrial ? Math.ceil((trialEnd!.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : 0;
-
-        
-        const status = s.canceled_at
-          ? "解約済み"
-          : s.cancel_scheduled
-          ? "解約予約中"
-          : s.is_active
-          ? "継続中"
-          : "停止中";
-
-        return {
-          ...s,
-          email: userMap.get(s.user_id) || "―",
-          trial: inTrial,
-          trialRemaining,
-          status,
-        };
-      });
-
-      const filtered = enriched.filter((s) => {
-        const matchPlan = filterPlan ? s.plan_type === filterPlan : true;
-        const matchStatus = filterStatus ? s.status === filterStatus : true;
-        return matchPlan && matchStatus;
-      });
-
-      setTotalPages(Math.ceil(filtered.length / pageSize));
-      setSubscriptions(filtered.slice(from, to + 1));
+      return;
     }
+
+    const enriched = subsRes.data.map((sub) => {
+      const stripeSub = stripeSubsRes.data.find(s => s.stripe_subscription_id === sub.stripe_subscription_id);
+      const stripeCustomer = stripeCustomersRes.data.find(c => c.stripe_customer_id === stripeSub?.stripe_customer_id);
+      const invoices = stripeInvoicesRes.data.filter(i => i.stripe_subscription_id === sub.stripe_subscription_id);
+      const latestInvoice = invoices.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+
+      const status = stripeSub?.status === "active" || stripeSub?.status === "trialing"
+        ? (stripeSub.status === "trialing" ? "トライアル中" : "継続中")
+        : stripeSub?.cancel_at_period_end
+        ? "解約予約中"
+        : stripeSub?.status === "canceled"
+        ? "解約済み"
+        : "停止中";
+
+      const now = new Date();
+      const trialEnd = stripeSub?.current_period_end ? new Date(stripeSub.current_period_end) : null;
+      const inTrial = stripeSub?.status === "trialing" && trialEnd && now < trialEnd;
+      const trialRemaining = inTrial ? Math.ceil((trialEnd!.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : 0;
+
+      return {
+        id: sub.id,
+        email: stripeCustomer?.email || sub.email || "―",
+        user_id: sub.user_id,
+        plan_type: sub.plan_type,
+        started_at: sub.started_at,
+        trial: inTrial,
+        trialRemaining,
+        payment_count: invoices.length,
+        status,
+        stripe_subscription_id: sub.stripe_subscription_id,
+      };
+    });
+
+    const filtered = enriched.filter((s) => {
+      const matchPlan = filterPlan ? s.plan_type === filterPlan : true;
+      const matchStatus = filterStatus ? s.status === filterStatus : true;
+      return matchPlan && matchStatus;
+    });
+
+    setTotalPages(Math.ceil(filtered.length / pageSize));
+    setSubscriptions(filtered.slice(from, to + 1));
   };
 
   return (
@@ -152,6 +131,7 @@ const [showModal, setShowModal] = useState(false);
           >
             <option value="">すべて</option>
             <option value="継続中">継続中</option>
+            <option value="トライアル中">トライアル中</option>
             <option value="解約予約中">解約予約中</option>
             <option value="解約済み">解約済み</option>
             <option value="停止中">停止中</option>
@@ -175,18 +155,14 @@ const [showModal, setShowModal] = useState(false);
           <tbody>
             {subscriptions.map((sub) => (
               <tr
-  key={sub.id}
-  className="border-t text-sm cursor-pointer hover:bg-gray-100"
-  onClick={() => handleRowClick(sub.user_id)}
->
+                key={sub.id}
+                className="border-t text-sm cursor-pointer hover:bg-gray-100"
+                onClick={() => handleRowClick(sub.user_id)}
+              >
                 <td className="px-4 py-2">{sub.email}</td>
                 <td className="px-4 py-2">{sub.plan_type}</td>
-                <td className="px-4 py-2">
-                  {dayjs(sub.started_at).format("YYYY/MM/DD")}
-                </td>
-                <td className="px-4 py-2">
-                  {sub.trial ? `残り${sub.trialRemaining}日` : "―"}
-                </td>
+                <td className="px-4 py-2">{dayjs(sub.started_at).format("YYYY/MM/DD")}</td>
+                <td className="px-4 py-2">{sub.trial ? `残り${sub.trialRemaining}日` : "―"}</td>
                 <td className="px-4 py-2">{sub.payment_count} 回</td>
                 <td className="px-4 py-2">{sub.status}</td>
                 <td className="px-4 py-2">
@@ -210,9 +186,7 @@ const [showModal, setShowModal] = useState(false);
         >
           前へ
         </button>
-        <span>
-          {page} / {totalPages}
-        </span>
+        <span>{page} / {totalPages}</span>
         <button
           onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
           disabled={page === totalPages}
@@ -221,12 +195,13 @@ const [showModal, setShowModal] = useState(false);
           次へ
         </button>
       </div>
-     {showModal && detailData && (
-  <SubscriptionDetailModal
-    detail={detailData}
-    onClose={() => setShowModal(false)}
-  />
-)} 
+
+      {showModal && detailData && (
+        <SubscriptionDetailModal
+          detail={detailData}
+          onClose={() => setShowModal(false)}
+        />
+      )}
     </div>
   );
 }
