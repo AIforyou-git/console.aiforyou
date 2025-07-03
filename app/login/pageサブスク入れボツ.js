@@ -50,6 +50,29 @@ export default function LoginSBPage() {
       setIsLoggingIn(false);
       return;
     }
+    // ✅ subscriptions テーブルを更新（毎回ログイン時に実行）
+try {
+  //await supabase
+  //  .from('subscriptions')
+  //  .upsert({
+   //   user_id: userId,
+    //  email: userData.email,
+    //  updated_at: new Date().toISOString(), // 任意：更新日時
+   // });
+    await supabase
+  .from('subscriptions')
+  .upsert({
+    user_id: userId,
+    email: userData.email,
+    updated_at: new Date().toISOString(),
+  }, {
+    onConflict: ['user_id'], // ← 明示することで user_id ベースで upsert 可能に
+  });
+} catch (e) {
+  console.warn('subscriptions テーブルの upsert 失敗:', e.message);
+}
+
+
 
     if (userData.status === 'pending') {
       const { error: updateError } = await supabase

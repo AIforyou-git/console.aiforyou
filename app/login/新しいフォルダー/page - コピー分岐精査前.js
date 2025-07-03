@@ -95,19 +95,51 @@ export default function LoginSBPage() {
       ]);
 
         if (userData.role === "client") {
-  // 💡 ロールが client の場合は必ず gate 経由で遷移させる
-  router.replace("/client-dashboard_gate");
+      const { data: planData, error: planError } = await supabase
+  .from("users")
+  .select("plan, stripe_customer_id, has_attempted_checkout") // ✅ 追加項目
+  .eq("id", userId)
+  .maybeSingle();
+
+if (planError) {
+  console.warn("プラン取得失敗:", planError.message);
+  router.replace("/client-dashboard/client-dashboard_checkin");
   return;
-} else {
-  const roleRedirects = {
-    agency: '/agency-dashboard',
-    user: '/user-dashboard',
-    admin: '/admin-dashboard',
-  };
-  const redirectTo = roleRedirects[userData.role] || '/dashboard';
-  router.replace(redirectTo);
 }
 
+// ✅ 新しいチェック条件：決済未完了で中断したユーザーはエラーページへ
+if (
+  planData.has_attempted_checkout &&
+  !planData.stripe_customer_id &&
+  planData.plan !== "premium"
+) {
+  router.replace("/error-page?msg=決済が完了していないため、アクセスできません。");
+  return;
+}
+
+// ✅ 【追加条件】plan が free なのに stripe_customer_id が登録されている → 不整合なので弾く
+if (
+  planData.plan === "free" &&
+  !!planData.stripe_customer_id
+) {
+  router.replace("/error-page?msg=決済が完了していないため、アクセスできません。");
+  return;
+}
+
+      if (userData.role === "client") {
+  // 💡 詳細な分岐処理は gate ページへ移譲する
+  router.replace("/client-dashboard_gate");
+  return;
+}
+    } else {
+      const roleRedirects = {
+        agency: '/agency-dashboard',
+        user: '/user-dashboard',
+        admin: '/admin-dashboard',
+      };
+      const redirectTo = roleRedirects[userData.role] || '/dashboard';
+      router.replace(redirectTo);
+    }
 
   };
 

@@ -12,6 +12,7 @@ export const config = {
 };
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+
 const endpointSecret =
   process.env.NODE_ENV === "production"
     ? process.env.STRIPE_WEBHOOK_SECRET_PROD!
@@ -40,6 +41,7 @@ export async function POST(req: NextRequest) {
 
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session;
+
       const userId = session.metadata?.user_id;
       const priceId = session.metadata?.price_id;
       const planIdMeta = session.metadata?.plan_id;
@@ -76,7 +78,25 @@ export async function POST(req: NextRequest) {
 
       const isFirstTrial = !pastTrials || pastTrials.length === 0;
 
-      
+      const { error: rpcError } = await supabaseAdmin.rpc("apply_subscription_update", {
+        user_id: userId,
+        email: customerEmail,
+        stripe_subscription_id: subscriptionId,
+        stripe_customer_id: customerId,
+        plan_id: planId,
+        plan_type: planType,
+        status: "active",
+        payment_count: 0,
+        cancel_scheduled: false,
+        has_trialed: isFirstTrial,
+        trial_started_at: isFirstTrial ? now : null,
+        trial_type: isFirstTrial ? "initial" : "none"
+      });
+
+      if (rpcError) {
+        console.error("❌ apply_subscription_update RPC エラー:", rpcError.message);
+        return NextResponse.json({ error: "Subscription update failed" }, { status: 500 });
+      }
 
       break;
     }
@@ -87,13 +107,15 @@ export async function POST(req: NextRequest) {
       await handleSubscriptionEvent(event);
       break;
 
-    case "invoice.payment_succeeded":
+     case "invoice.payment_succeeded":
     case "invoice.paid":
     case "invoice.payment_failed": {
       const invoice = event.data.object as Stripe.Invoice;
       console.log("🧾 受信した invoice オブジェクト:", JSON.stringify(invoice, null, 2));
 
+      // 👇 修正点：型安全に parent 経由で subscriptionId を補完
       const parent = (invoice as any).parent;
+
       const subscriptionId =
         invoice.subscription ??
         (parent?.subscription_details?.subscription as string | undefined);
@@ -105,7 +127,7 @@ export async function POST(req: NextRequest) {
 
       const { data: existing, error } = await supabaseAdmin
         .from("stripe_subscriptions")
-        .select("id, user_id")
+        .select("id")
         .eq("stripe_subscription_id", subscriptionId)
         .single();
 
@@ -113,23 +135,6 @@ export async function POST(req: NextRequest) {
         console.warn("⚠ サブスクリプション未登録、invoice処理スキップ:", subscriptionId);
         break;
       }
-
-      const invoiceUserId = existing.user_id ?? null;
-
-      await supabaseAdmin.from("stripe_invoices").upsert({
-        stripe_invoice_id: invoice.id,
-        stripe_subscription_id: subscriptionId,
-        amount_paid: invoice.amount_paid,
-        status: invoice.status,
-        paid_at: invoice.status_transitions?.paid_at
-          ? new Date(invoice.status_transitions.paid_at * 1000).toISOString()
-          : null,
-        created_at: new Date(invoice.created * 1000).toISOString(),
-        user_id: invoiceUserId
-      });
-
-      // ✅ 支払い成功時にのみ premium に切り替え
-      
 
       await handleInvoiceEvent(event);
       break;

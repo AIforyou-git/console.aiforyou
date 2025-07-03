@@ -24,29 +24,19 @@ export default function ThanksPage() {
         const result = await res.json();
 
         if (result.stripe_customer_id) {
-          // 🔑 セッションを明示的に復元（これが重要）
-          await supabase.auth.getSession();
-
           const {
             data: { user },
-            error: userError,
           } = await supabase.auth.getUser();
 
-          console.log("👤 Supabase User:", user);
-          if (userError) {
-            console.warn("⚠️ getUser error:", userError.message);
-          }
-
           if (user?.id) {
-            // ✅ stripe_customer_id、has_attempted_checkout、plan を同時に保存
-            const { error } = await supabase
-              .from('users')
-              .update({
-                stripe_customer_id: result.stripe_customer_id,
-                has_attempted_checkout: true, // ✅ Thanks通過により決済試行済みとする
-                plan: 'premium' // ✅ 決済完了によりプランを premium に昇格
-              })
-              .eq('id', user.id);
+            // ✅ stripe_customer_id と has_attempted_checkout を同時に保存
+const { error } = await supabase
+  .from('users')
+  .update({
+    stripe_customer_id: result.stripe_customer_id,
+    has_attempted_checkout: true  // ✅ Thanks通過により決済試行済みとする
+  })
+  .eq('id', user.id);
 
             if (error) {
               console.error('❌ Supabase 更新失敗:', error.message);

@@ -36,14 +36,29 @@ if (!stripeSubscriptionId && invoiceAny.parent?.subscription_details?.subscripti
     ? new Date(invoice.status_transitions.paid_at * 1000).toISOString()
     : null;
 
-  const invoiceRecord = {
-    stripe_invoice_id: invoice.id,
-    stripe_subscription_id: stripeSubscriptionId,
-    amount_paid: invoice.amount_paid ?? 0,
-    status: invoice.status ?? "unknown",
-    paid_at: paidAt,
-    created_at: new Date().toISOString(),
-  };
+  // 👇 user_id を stripe_subscriptions から補完
+const { data: subscriptionRec, error: subError } = await supabaseAdmin
+  .from("stripe_subscriptions")
+  .select("user_id")
+  .eq("stripe_subscription_id", stripeSubscriptionId)
+  .single();
+
+const userId = subscriptionRec?.user_id ?? null;
+
+if (subError) {
+  console.warn("⚠ stripe_subscriptions から user_id 取得失敗:", subError.message);
+}
+
+// 👇 user_id を含めて保存
+const invoiceRecord = {
+  stripe_invoice_id: invoice.id,
+  stripe_subscription_id: stripeSubscriptionId,
+  user_id: userId, // ✅ 追加
+  amount_paid: invoice.amount_paid ?? 0,
+  status: invoice.status ?? "unknown",
+  paid_at: paidAt,
+  created_at: new Date().toISOString(),
+};
 
   const { error } = await supabaseAdmin
     .from("stripe_invoices")

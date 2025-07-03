@@ -70,9 +70,7 @@ export async function POST(req: NextRequest) {
       mode: "subscription",
       line_items: [{ price: priceId, quantity: 1 }],
       customer_email: user.email ?? undefined,
-      success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/stripe_v3/thanks?session_id={CHECKOUT_SESSION_ID}&price_id=${priceId}`,
-
-      //success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/stripe_v3/thanks?price_id=${priceId}`,
+      success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/stripe_v3/thanks?price_id=${priceId}`,
       cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/stripe_v3/cancel`,
       metadata: {
         user_id: user.id,

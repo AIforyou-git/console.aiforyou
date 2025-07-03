@@ -19,34 +19,16 @@ export default function ClientDashboardIntro(): React.JSX.Element {
       if (!user?.id) return;
 
       // クライアントプロフィール確認
-      const { data: client, error: clientError } = await supabase
-  .from("clients")
-  .select("profile_completed")
-  .eq("uid", user.id)
-  .maybeSingle();
+      const { data: client } = await supabase
+        .from("clients")
+        .select("profile_completed")
+        .eq("uid", user.id)
+        .maybeSingle();
 
-if (clientError) {
-  console.error("クライアント情報取得失敗:", clientError.message);
-}
-
-if (!client) {
-  // 🔽 初回未生成なら空レコードを作成
-  const { error: insertError } = await supabase
-  .from("clients")
-  .upsert({ uid: user.id }, { onConflict: 'uid' }); // 既に存在していればスキップ（または更新）
-
-  if (insertError) {
-    console.error("クライアントレコード作成失敗:", insertError.message);
-  }
-
-  setShowModal(true);
-  return;
-}
-
-if (!client.profile_completed) {
-  setShowModal(true);
-  return;
-}
+      if (!client || !client.profile_completed) {
+        setShowModal(true);
+        return;
+      }
 
       // プラン確認
       const { data: userData, error: userError } = await supabase

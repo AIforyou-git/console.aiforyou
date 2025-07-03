@@ -5,68 +5,77 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/authProvider";
 import { supabase } from "@/lib/supabaseClient";
 import Link from "next/link";
-import ClientInfoForm from "./ClientInfoForm";
+//import ClientInfoForm from "./ClientInfoForm";
 import NewsControlPage from "./news-control"; // ← 変更ポイント
 
 export default function ClientDashboard() {
   const { user, loading } = useAuth();
   const [clientData, setClientData] = useState(null);
-  const [showInfoModal, setShowInfoModal] = useState(false);
+  //const [showInfoModal, setShowInfoModal] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [clientName, setClientName] = useState("");
   const [retryCount, setRetryCount] = useState(0);
   const [fetching, setFetching] = useState(true);
 
   useEffect(() => {
-    const loadClientData = async () => {
-      if (!user?.id) return;
-
-      try {
-        const { data, error } = await supabase
-          .from("clients")
-          .select("*")
-          .eq("uid", user.id)
-          .maybeSingle();
-
-        if (error) throw error;
-
-        if (!data || !data.profile_completed) {
-          setShowInfoModal(true);
-        }
-
-        setClientData(data);
-        const name = data?.name || user.email?.split("@")[0];
-        setClientName(name);
-      } catch (err) {
-        console.error("❌ クライアント情報取得エラー:", err);
-        if (retryCount < 3) {
-          setTimeout(() => setRetryCount((prev) => prev + 1), 1000);
-        }
-      } finally {
-        setFetching(false);
-      }
-    };
-
-    if (!loading) loadClientData();
-  }, [user, loading, retryCount]);
-
-  const handleModalClose = async () => {
-    setShowInfoModal(false);
-    setIsSyncing(true);
+  const loadClientData = async () => {
+    if (!user?.id) return;
 
     try {
-      const now = new Date().toISOString();
-      const { error } = await supabase
-        .from("users")
-        .update({ status: "active", last_login: now })
-        .eq("id", user.id);
+      // ✅ Stripe→Supabaseの最新同期API呼び出し
+      const syncRes = await fetch("/api/stripe_v3/stripe-sync", {
+        method: "GET",
+        headers: {
+          "x-user-id": user.id,
+        },
+      });
+
+      if (!syncRes.ok) {
+        console.warn("⚠️ Stripe同期に失敗", await syncRes.json());
+      }
+
+      const { data, error } = await supabase
+        .from("clients")
+        .select("*")
+        .eq("uid", user.id)
+        .maybeSingle();
+
       if (error) throw error;
+
+      setClientData(data);
+      const name = data?.name || user.email?.split("@")[0];
+      setClientName(name);
     } catch (err) {
-      console.error("❌ Supabase 同期通信失敗:", err.message);
+      console.error("❌ クライアント情報取得エラー:", err);
+      if (retryCount < 3) {
+        setTimeout(() => setRetryCount((prev) => prev + 1), 1000);
+      }
     } finally {
-      setIsSyncing(false);
+      setFetching(false);
     }
   };
+
+  if (!loading) loadClientData();
+}, [user, loading, retryCount]);
+
+
+ // const handleModalClose = async () => {
+ //   setShowInfoModal(false);
+ //   setIsSyncing(true);
+
+ //   try {
+ //     const now = new Date().toISOString();
+ //     const { error } = await supabase
+ //       .from("users")
+ //       .update({ status: "active", last_login: now })
+ //       .eq("id", user.id);
+ //     if (error) throw error;
+ //   } catch (err) {
+ //     console.error("❌ Supabase 同期通信失敗:", err.message);
+ //   } finally {
+ //     setIsSyncing(false);
+ //   }
+ // };
 
   if (loading || fetching) {
     return (
@@ -108,13 +117,13 @@ export default function ClientDashboard() {
       </div>
 
       
-       {showInfoModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center">
-          <div className="bg-white rounded-xl p-6 w-[95%] max-w-xl shadow-2xl">
-            <ClientInfoForm onClose={handleModalClose} />
-          </div>
-        </div>
-      )}
+      {/*// {showInfoModal && (
+      //  <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center">
+      //    <div className="bg-white rounded-xl p-6 w-[95%] max-w-xl shadow-2xl">
+      //      <ClientInfoForm onClose={handleModalClose} />
+      //    </div>
+      //  </div>
+      //)}*/}
 
       {isSyncing && (
         <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center">

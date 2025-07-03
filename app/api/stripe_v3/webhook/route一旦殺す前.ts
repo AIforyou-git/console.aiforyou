@@ -76,7 +76,25 @@ export async function POST(req: NextRequest) {
 
       const isFirstTrial = !pastTrials || pastTrials.length === 0;
 
-      
+      const { error: rpcError } = await supabaseAdmin.rpc("apply_subscription_update", {
+        p_user_id: userId,
+        p_email: customerEmail,
+        p_stripe_subscription_id: subscriptionId,
+        p_stripe_customer_id: customerId,
+        p_plan_id: planId,
+        p_plan_type: planType,
+        p_status: "active",
+        p_payment_count: 0,
+        p_cancel_scheduled: false,
+        p_has_trialed: isFirstTrial,
+        p_trial_started_at: isFirstTrial ? now : null,
+        p_trial_type: isFirstTrial ? "initial" : "none"
+      });
+
+      if (rpcError) {
+        console.error("❌ apply_subscription_update RPC エラー:", rpcError.message);
+        return NextResponse.json({ error: "Subscription update failed" }, { status: 500 });
+      }
 
       break;
     }
@@ -129,7 +147,14 @@ export async function POST(req: NextRequest) {
       });
 
       // ✅ 支払い成功時にのみ premium に切り替え
-      
+      if (event.type === "invoice.payment_succeeded" || event.type === "invoice.paid") {
+        const { error: confirmError } = await supabaseAdmin.rpc("confirm_subscription_payment", {
+          p_stripe_subscription_id: subscriptionId
+        });
+        if (confirmError) {
+          console.error("❌ confirm_subscription_payment RPC エラー:", confirmError.message);
+        }
+      }
 
       await handleInvoiceEvent(event);
       break;

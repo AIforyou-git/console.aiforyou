@@ -12,24 +12,22 @@ export default function ClientDashboard() {
   const [clientData, setClientData] = useState(null);
   const [subscription, setSubscription] = useState(null);
   const [fetching, setFetching] = useState(true);
-  const [subscriptionError, setSubscriptionError] = useState("");
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    const fetchAndSync = async () => {
+    const loadData = async () => {
       if (!user?.id) return;
 
       try {
-        // ✅ Stripe データ同期 API 呼び出し
-        const syncRes = await fetch("/api/stripe_v3/stripe-sync", {
-          method: "GET",
-          headers: { "x-user-id": user.id },
-        });
+        // ✅ Stripeから最新の契約情報を同期
+      await fetch("/api/stripe_v3/stripe-sync", {
+        method: "GET",
+        headers: {
+          "x-user-id": user.id,
+        },
+      });
 
-        if (!syncRes.ok) {
-          console.warn("⚠️ Stripe同期失敗:", await syncRes.json());
-        }
 
-        // ✅ Supabase からクライアント情報取得
         const { data: client, error: clientError } = await supabase
           .from("clients")
           .select("*")
@@ -39,7 +37,6 @@ export default function ClientDashboard() {
         if (clientError) throw clientError;
         setClientData(client);
 
-        // ✅ Supabase から契約情報取得
         const { data: sub, error: subError } = await supabase
           .from("subscriptions")
           .select("*")
@@ -49,17 +46,16 @@ export default function ClientDashboard() {
           .maybeSingle();
 
         if (subError) throw subError;
-
         setSubscription(sub);
       } catch (err) {
-        console.error("❌ 契約情報取得エラー:", err?.message || err);
-        setSubscriptionError("契約情報の取得に失敗しました。");
+        console.error("❌ データ取得エラー:", err);
+        setError("契約情報の取得に失敗しました。");
       } finally {
         setFetching(false);
       }
     };
 
-    if (!loading) fetchAndSync();
+    if (!loading) loadData();
   }, [user, loading]);
 
   if (loading || fetching) {
@@ -78,10 +74,9 @@ export default function ClientDashboard() {
     ? "継続中"
     : "停止中";
 
-  const trialStatus =
-    subscription?.trial_type === "initial"
-      ? `トライアル中（${dayjs(subscription.trial_started_at).add(1, "day").format("YYYY/MM/DD")}まで）`
-      : "―";
+  const trialStatus = subscription?.trial_type === "initial"
+    ? `トライアル中（${dayjs(subscription.trial_started_at).add(1, 'day').format("YYYY/MM/DD")}まで）`
+    : "―";
 
   const nextBillingDate = subscription?.current_period_end
     ? dayjs(subscription.current_period_end).format("YYYY/MM/DD")
@@ -91,17 +86,12 @@ export default function ClientDashboard() {
     <div className="p-6 max-w-2xl mx-auto">
       <h1 className="text-xl font-bold mb-6 text-gray-800">ご契約内容の確認</h1>
 
-      {subscriptionError && (
-        <p className="text-red-600 mb-4 text-sm">{subscriptionError}</p>
-      )}
+      {error && <p className="text-red-600 mb-4 text-sm">{error}</p>}
 
       <FormField label="契約者名" value={clientData?.name || "―"} />
       <FormField label="メールアドレス" value={user.email} />
       <FormField label="プラン" value={subscription?.plan_type || "―"} />
-      <FormField
-        label="契約日"
-        value={dayjs(subscription?.started_at).format("YYYY/MM/DD")}
-      />
+      <FormField label="契約日" value={dayjs(subscription?.started_at).format("YYYY/MM/DD")} />
       <FormField label="状態" value={status} />
       <FormField label="トライアル" value={trialStatus} />
       <FormField label="次回請求予定日" value={nextBillingDate} />
@@ -124,9 +114,7 @@ export default function ClientDashboard() {
 function FormField({ label, value }) {
   return (
     <div className="mb-4">
-      <label className="block text-sm font-medium text-gray-600 mb-1">
-        {label}
-      </label>
+      <label className="block text-sm font-medium text-gray-600 mb-1">{label}</label>
       <div className="w-full px-3 py-2 border rounded bg-gray-50 text-gray-800 text-sm">
         {value}
       </div>

@@ -13,24 +13,39 @@ export async function handleSubscriptionEvent(event: Stripe.Event) {
     ? new Date(subscription.canceled_at * 1000).toISOString()
     : null;
 
-  const record = {
-    stripe_subscription_id: subscription.id,
-    stripe_customer_id: subscription.customer as string,
-    status: subscription.status,
-    cancel_at_period_end: subscription.cancel_at_period_end,
-    current_period_start: subscription.current_period_start
-      ? new Date(subscription.current_period_start * 1000).toISOString()
-      : null,
-    current_period_end: subscription.current_period_end
-      ? new Date(subscription.current_period_end * 1000).toISOString()
-      : null,
-    cancel_at: subscription.cancel_at
-      ? new Date(subscription.cancel_at * 1000).toISOString()
-      : null,
-    canceled_at: canceledAt,
-    is_active: subscription.status === "active" || subscription.status === "trialing",
-    updated_at: new Date().toISOString(),
-  };
+  // 👇 user_id を stripe_customer_id から補完
+const { data: customerRec, error: customerErr } = await supabaseAdmin
+  .from("stripe_customers")
+  .select("user_id")
+  .eq("stripe_customer_id", subscription.customer as string)
+  .single();
+
+const userId = customerRec?.user_id ?? null;
+
+if (customerErr) {
+  console.warn("⚠ stripe_customers から user_id 取得失敗:", customerErr.message);
+}
+
+// 👇 user_id を追加して record を構成
+const record = {
+  stripe_subscription_id: subscription.id,
+  stripe_customer_id: subscription.customer as string,
+  user_id: userId, // ✅ 追加ポイント
+  status: subscription.status,
+  cancel_at_period_end: subscription.cancel_at_period_end,
+  current_period_start: subscription.current_period_start
+    ? new Date(subscription.current_period_start * 1000).toISOString()
+    : null,
+  current_period_end: subscription.current_period_end
+    ? new Date(subscription.current_period_end * 1000).toISOString()
+    : null,
+  cancel_at: subscription.cancel_at
+    ? new Date(subscription.cancel_at * 1000).toISOString()
+    : null,
+  canceled_at: canceledAt,
+  is_active: subscription.status === "active" || subscription.status === "trialing",
+  updated_at: new Date().toISOString(),
+};
 
   const { error } = await supabaseAdmin
     .from("stripe_subscriptions")
