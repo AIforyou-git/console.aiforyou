@@ -58,7 +58,34 @@ export default function AdminDashboard() {
     };
 
     updateUserInfo();
-  }, [user]);
+ 
+
+    }, [user]);
+
+  //const handleSyncStripe = async () => {
+   // try {
+    //  const res = await fetch("/api/admin/sync-stripe-tables", { method: "POST" });
+     // const result = await res.json();
+     // alert(result.message);
+    // } catch (e) {
+     // console.error("❌ 実行失敗:", e);
+     // alert("同期に失敗しました");
+   // }
+  // };
+
+  const handleSyncStripe = async () => {
+  try {
+    await supabase.rpc("sync_customers");
+    await supabase.rpc("sync_subscriptions");
+    await supabase.rpc("sync_invoices");
+    alert("同期が完了しました。");
+  } catch (e) {
+    console.error("❌ 実行失敗:", e);
+    alert("同期に失敗しました");
+  }
+};
+
+
 
   const handleLogout = async () => {
     try {
@@ -112,6 +139,10 @@ export default function AdminDashboard() {
             ⚙️ アカウント設定
           </Button>
         </Link>
+
+        <Button onClick={handleSyncStripe} variant="outline" className="w-full">
+          🔄 Stripe同期を実行 SQLやめ
+        </Button>
 
         <Button onClick={handleLogout} variant="destructive" className="w-full">
           🚪 ログアウト

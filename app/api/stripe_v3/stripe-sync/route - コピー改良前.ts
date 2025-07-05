@@ -1,30 +1,21 @@
+// app/api/stripe_v3/stripe-sync/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+//import stripe from '@/lib/stripeClient';
 import Stripe from 'stripe';
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-
-async function lookupUserIdByCustomer(customerId: string) {
-  const { data, error } = await supabaseAdmin
-    .from('users')
-    .select('id')
-    .eq('stripe_customer_id', customerId)
-    .maybeSingle();
-
-  if (error || !data) return null;
-  return data.id;
-}
-
 export async function GET(req: NextRequest) {
-  const user_id = req.headers.get('x-user-id');
+  const user_id = req.headers.get('x-user-id'); // ✅ middleware 等で事前付与された認証済みユーザーID
 
   if (!user_id) {
     return NextResponse.json({ error: 'User ID が必要です' }, { status: 400 });
   }
 
+  // ✅ ユーザー情報取得（stripe_customer_idの存在確認）
   const { data: user, error: userError } = await supabaseAdmin
     .from('users')
-    .select('stripe_customer_id')
+    .select('stripe_customer_id, email')
     .eq('id', user_id)
     .maybeSingle();
 
@@ -33,28 +24,9 @@ export async function GET(req: NextRequest) {
   }
 
   const customerId = user.stripe_customer_id;
-  const now = new Date().toISOString();
 
   try {
-    // ✅ 顧客情報の取得と保存
-    const customer = await stripe.customers.retrieve(customerId) as Stripe.Customer;
-
-    //const customer = await stripe.customers.retrieve(customerId);
-    const resolvedUserId = await lookupUserIdByCustomer(customerId);
-
-    if (typeof customer === 'object' && customer.id) {
-      await supabaseAdmin.from('stripe_customers').upsert({
-        stripe_customer_id: customer.id,
-        email: customer.email,
-        name: typeof customer.name === 'string' ? customer.name : null,
-        phone: typeof customer.phone === 'string' ? customer.phone : null,
-        metadata: customer.metadata || {},
-        user_id: resolvedUserId,
-        created_at: now,
-      });
-    }
-
-    // ✅ サブスクリプションの取得・保存
+    // ✅ Stripe: サブスクリプション情報取得
     const subscriptions = await stripe.subscriptions.list({
       customer: customerId,
       status: 'all',
@@ -62,19 +34,25 @@ export async function GET(req: NextRequest) {
       limit: 10,
     });
 
+    // ✅ Stripe: インボイス情報取得
+    const invoices = await stripe.invoices.list({
+      customer: customerId,
+      limit: 10,
+    });
+
     let updatedSubscriptionCount = 0;
 
+    // ✅ Supabase: stripe_subscriptions / subscriptions テーブルへ保存
     for (const sub of subscriptions.data) {
+      const now = new Date().toISOString();
+
+      // stripe_subscriptions 保存
       await supabaseAdmin.from('stripe_subscriptions').upsert({
         stripe_subscription_id: sub.id,
         stripe_customer_id: customerId,
-        user_id: resolvedUserId,
+        user_id,
         status: sub.status,
         plan_id: sub.items.data[0]?.price.id ?? null,
-        price_id: sub.items.data[0]?.price.id ?? null,
-        started_at: sub.start_date
-          ? new Date(sub.start_date * 1000).toISOString()
-          : null,
         current_period_start: sub.current_period_start
           ? new Date(sub.current_period_start * 1000).toISOString()
           : null,
@@ -87,22 +65,42 @@ export async function GET(req: NextRequest) {
         canceled_at: sub.canceled_at
           ? new Date(sub.canceled_at * 1000).toISOString()
           : null,
-        cancel_at_period_end: sub.cancel_at_period_end ?? false,
-        is_active: ['active', 'trialing'].includes(sub.status),
+        cancel_scheduled: sub.cancel_at_period_end ?? false,
         updated_at: now,
-        updated_from_webhook: false,
-        last_synced_at: now,
+      });
+
+      // subscriptions テーブル保存（UI連携用）
+      await supabaseAdmin.from('subscriptions').upsert({
+        user_id,
+        email: user.email,
+        plan_id: sub.items.data[0]?.price.id ?? null,
+        plan_type: sub.items.data[0]?.price.nickname ?? null,
+        stripe_subscription_id: sub.id,
+        status: sub.status,
+        is_active: ['active', 'trialing'].includes(sub.status),
+        cancel_scheduled: sub.cancel_at_period_end ?? false,
+        canceled_at: sub.canceled_at
+          ? new Date(sub.canceled_at * 1000).toISOString()
+          : null,
+        current_period_start: sub.current_period_start
+          ? new Date(sub.current_period_start * 1000).toISOString()
+          : null,
+        current_period_end: sub.current_period_end
+          ? new Date(sub.current_period_end * 1000).toISOString()
+          : null,
+        cancel_at: sub.cancel_at
+          ? new Date(sub.cancel_at * 1000).toISOString()
+          : null,
+        started_at: sub.start_date
+          ? new Date(sub.start_date * 1000).toISOString()
+          : null,
+        updated_at: now,
       });
 
       updatedSubscriptionCount++;
     }
 
-    // ✅ インボイスの取得・保存
-    const invoices = await stripe.invoices.list({
-      customer: customerId,
-      limit: 10,
-    });
-
+    // ✅ Supabase: stripe_invoices テーブルへ保存
     for (const inv of invoices.data) {
       await supabaseAdmin.from('stripe_invoices').upsert({
         stripe_invoice_id: inv.id,
@@ -113,14 +111,14 @@ export async function GET(req: NextRequest) {
           ? new Date(inv.status_transitions.paid_at * 1000).toISOString()
           : null,
         created_at: new Date(inv.created * 1000).toISOString(),
-        user_id: resolvedUserId,
+        user_id,
       });
     }
 
-    // ✅ 最終同期時間を更新
+    // ✅ 最終同期時刻の更新
     await supabaseAdmin
       .from('users')
-      .update({ last_stripe_sync_at: now })
+      .update({ last_stripe_sync_at: new Date().toISOString() })
       .eq('id', user_id);
 
     return NextResponse.json({

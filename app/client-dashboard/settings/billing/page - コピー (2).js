@@ -45,18 +45,14 @@ export default function ClientDashboard() {
       if (custError || !cust) throw custError || new Error("顧客情報が見つかりません");
       setCustomer(cust);
 
-      // ✅ plan_id が null の場合はスキップ（エラー防止）
-if (sub.plan_id) {
-  const { data: planData, error: planError } = await supabase
-    .from("plans")
-    .select("*")
-    .eq("id", sub.plan_id)
-    .maybeSingle();
+      const { data: planData, error: planError } = await supabase
+        .from("plans")
+        .select("*")
+        .eq("id", sub.plan_id)
+        .maybeSingle();
 
-  if (planError) throw planError;
-  if (planData) setPlan(planData);
-}
-
+      if (planError || !planData) throw planError || new Error("プラン情報が見つかりません");
+      setPlan(planData);
     } catch (err) {
       console.error("❌ fetchData内エラー:", err?.message || err);
       setErrorMessage("契約情報の取得に失敗しました。");
@@ -65,61 +61,31 @@ if (sub.plan_id) {
 
   useEffect(() => {
     const syncAndFetch = async () => {
-  setFetching(true);
+      setFetching(true);
 
-  try {
-    await fetch("/api/stripe_v3/stripe-sync", {
-      method: "GET",
-      headers: { "x-user-id": user.id },
-    });
+      try {
+        await fetch("/api/admin/sync-all", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
 
-    // ✅ stripe補完処理（全体補完フェーズ）
-    const { data: customerRecord } = await supabase
-      .from("stripe_customers")
-      .select("stripe_customer_id")
-      .eq("user_id", user.id)
-      .maybeSingle();
+        await fetchData();
+      } catch (err) {
+        console.error("❌ 同期または取得エラー:", err);
+        setErrorMessage("契約情報の取得に失敗しました。");
+      } finally {
+        setFetching(false);
+      }
+    };
 
-    if (customerRecord?.stripe_customer_id) {
-      const fixRes = await fetch("/api/admin/fix-stripe-relations", {
-        method: "POST",
-        body: JSON.stringify({
-          user_id: user.id,
-          stripe_customer_id: customerRecord.stripe_customer_id,
-        }),
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-      const fixResult = await fixRes.json();
-      console.log("🛠️ 補完実行結果:", fixResult);
+    if (!loading && user?.id && accessToken) {
+      syncAndFetch();
     }
+  }, [user, loading, accessToken]);
 
-    await fetchData();
-  } catch (err) {
-    console.error("❌ 同期または取得エラー:", err);
-    setErrorMessage("お客様情報の取得に失敗しました。");
-  } finally {
-    setFetching(false);
+  if (loading || fetching) {
+    return <div className="p-6 text-center text-gray-600">🔄 読み込み中...</div>;
   }
-};
- // ✅ これが必要
-  if (!loading && user?.id) {
-    syncAndFetch();
-  }
-}, [user, loading]); // ✅ useEffect の依存配列とともにここで閉じる
-
- // if (loading || fetching) {
- //   return <div className="p-6 text-center text-gray-600">🔄 読み込み中...</div>;
- // }
-
- if (loading) {
-  return <div className="p-6 text-center text-gray-600">🔐 ログイン状態を確認中...</div>;
-}
-if (fetching) {
-  return <div className="p-6 text-center text-gray-600">🛠️ お客様情報を同期中です...</div>;
-}
-
 
   if (!user || user.role !== "client") {
     return <div className="p-6 text-red-500">アクセス権がありません。</div>;
@@ -167,7 +133,7 @@ if (fetching) {
         </p>
 
         {/* 👇 旧カスタムキャンセルボタンはコメントアウトで残す */}
-        {/*
+        {/* 
         <CancelSubscriptionButton
           subscription={subscription}
           isAdmin={false}

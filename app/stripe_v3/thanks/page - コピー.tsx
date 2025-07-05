@@ -53,33 +53,6 @@ export default function ThanksPage() {
             } else {
               console.log('✅ stripe_customer_id を保存しました:', result.stripe_customer_id);
             }
-            if (error) {
-  console.error('❌ Supabase 更新失敗:', error.message);
-} else {
-  console.log('✅ stripe_customer_id を保存しました:', result.stripe_customer_id);
-
-  // 🔁 フェーズ1補完処理を遅延実行（1.0秒）
-  setTimeout(async () => {
-    try {
-      const fixRes = await fetch("/api/admin/fix-stripe-relations", {
-        method: "POST",
-        body: JSON.stringify({
-          user_id: user.id,
-          stripe_customer_id: result.stripe_customer_id,
-        }),
-        headers: {
-          "Content-Type": "application/json"
-        }
-      });
-      const fixResult = await fixRes.json();
-      console.log("🛠️ フェーズ1補完結果:", fixResult);
-    } catch (e) {
-      console.error("❌ フェーズ1補完失敗:", e);
-    }
-  }, 1000);
-}
-
-
           } else {
             console.warn('❗ ユーザーが未認証です');
           }
