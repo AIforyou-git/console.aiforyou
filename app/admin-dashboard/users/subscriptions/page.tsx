@@ -98,8 +98,19 @@ export default function SubscriptionsAdminPage() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">課金状況管理</h1>
-      {error && <p className="text-red-600 mb-4">{error}</p>}
+      <h1 className="text-2xl font-bold mb-4">課金状況管理</h1>
+
+<a
+  href={`${process.env.NEXT_PUBLIC_BASE_URL}/admin-dashboard/users/subscriptions/subscription-sync-view`}
+  target="_blank"
+  rel="noopener noreferrer"
+  className="inline-block mb-6 text-sm text-blue-600 border border-blue-600 px-3 py-1 rounded hover:bg-blue-600 hover:text-white transition"
+>
+  📄 サブスク同期ビューへ
+</a>
+
+{error && <p className="text-red-600 mb-4">{error}</p>}
+
 
       <div className="flex flex-wrap gap-4 mb-4 text-sm">
         <div>

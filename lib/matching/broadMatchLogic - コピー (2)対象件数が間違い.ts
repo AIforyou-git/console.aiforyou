@@ -42,10 +42,7 @@ export async function getPrefectureMatches() {
     const { data: articlesInPref, error: inPrefError } = await scrapingClient
       .from('jnet_articles_public')
       .select('article_id')
-      .eq('visible', true)
-      .eq('send_today', true)
-      .not('published_at', 'is', null)
-      .ilike('structured_prefecture', `%${prefecture}%`);
+      .ilike('structured_prefecture', `%${prefecture}%`); // ← 修正済みカラム名
 
     if (inPrefError) {
       console.warn(`⚠️ ${prefecture} の都道府県マッチ取得エラー:`, inPrefError.message);
@@ -55,10 +52,7 @@ export async function getPrefectureMatches() {
     const { data: articlesNationwide, error: nationwideError } = await scrapingClient
       .from('jnet_articles_public')
       .select('article_id')
-      .eq('visible', true)
-      .eq('send_today', true)
-      .not('published_at', 'is', null)
-      .ilike('structured_prefecture', '%全国%');
+      .ilike('structured_prefecture', '%全国%'); // ← 修正済みカラム名
 
     if (nationwideError) {
       console.warn(`⚠️ 全国対象マッチ取得エラー:`, nationwideError.message);

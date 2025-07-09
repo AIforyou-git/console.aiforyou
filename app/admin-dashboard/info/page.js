@@ -66,6 +66,20 @@ export default function Info() {
             クライアントにメールを一括送信、または手動で個別送信
           </p>
         </Link>
+
+        {/* ✅ 追加: マッチング一覧への遷移 */}
+  <Link
+    href="/admin-dashboard/news-match"
+    className="flex flex-col items-start bg-white shadow-md p-5 rounded-xl hover:bg-gray-50 transition"
+  >
+    <div className="text-purple-600 mb-2">
+      <Send className="w-6 h-6" />
+    </div>
+    <h3 className="text-lg font-semibold mb-1">マッチング管理</h3>
+    <p className="text-sm text-gray-600">
+      フェーズごとのマッチ結果を確認・比較・精査
+    </p>
+  </Link>
       </div>
     </div>
   );

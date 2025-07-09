@@ -7,7 +7,6 @@ import { supabase } from "@/lib/supabaseClient";
 import Link from "next/link";
 import ClientInfoForm from "./ClientInfoForm";
 import NewsControlPage from "./news-control"; // ← 変更ポイント
-import NewsByIndustryPage from "./news-by-industry"; // ✅ 業種マッチページを追加
 
 export default function ClientDashboard() {
   const { user, loading } = useAuth();
@@ -17,9 +16,6 @@ export default function ClientDashboard() {
   const [clientName, setClientName] = useState("");
   const [retryCount, setRetryCount] = useState(0);
   const [fetching, setFetching] = useState(true);
-
-  //const [tab, setTab] = useState("area"); // "area" or "industry"
-  const [tab, setTab] = useState("industry"); // デフォルトを業種マッチに変更
 
   useEffect(() => {
     const loadClientData = async () => {
@@ -90,31 +86,7 @@ export default function ClientDashboard() {
          {/*  {clientName} 様の最新情報 */}
       </h1>
 
-      <div className="flex justify-center gap-4 mb-4">
-  <button
-    className={`px-4 py-1 rounded-full border text-sm ${
-      tab === "area" ? "bg-emerald-500 text-white" : "bg-gray-200 text-gray-600"
-    }`}
-    onClick={() => setTab("area")}
-  >
-    🌎 地域マッチ
-  </button>
-  <button
-    className={`px-4 py-1 rounded-full border text-sm ${
-      tab === "industry" ? "bg-emerald-500 text-white" : "bg-gray-200 text-gray-600"
-    }`}
-    onClick={() => setTab("industry")}
-  >
-    🏭 業種マッチ
-  </button>
-</div>
-
-{tab === "area" && <NewsControlPage clientData={clientData} />}
-{tab === "industry" && <NewsByIndustryPage clientData={clientData} />}
-
-
-
-      
+      <NewsControlPage clientData={clientData} />
 
       <div className="fixed bottom-0 left-0 w-full bg-white border-t shadow z-40">
         <div className="max-w-screen-md mx-auto flex justify-around items-center py-3 px-4 gap-4">
