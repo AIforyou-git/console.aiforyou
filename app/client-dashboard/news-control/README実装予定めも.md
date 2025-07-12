@@ -199,3 +199,103 @@ setEngaged((prev) => ({
 🔹 地域自動取得と記事マッチング	✅ 完了（region_prefecture による絞り込み）
 🔹 UI要素の表示/非表示切替（折りたたみ）	✅ 完了（検索オプションなど）
 
+>>>
+構成
+>>>
+
+🧩 機能の構成とデータ要件
+1. 対象記事の抽出条件
+対象記事はユーザーの地域設定に応じて抽出されます。
+
+✅ フィルタ条件（都道府県 or 市区町村）
+clientData.match_by_city が true の場合：
+
+structured_area_full === clientData.region_full（完全一致）
+
+structured_prefecture === clientData.region_prefecture && structured_city is null（都道府県全体）
+
+structured_prefecture === '全国'（全国対象）
+
+false の場合：
+
+structured_prefecture === clientData.region_prefecture
+
+または '全国'
+
+2. キーワード検索
+キーワードに対して複数カラムを ilike（部分一致）で検索：
+
+structured_title
+
+structured_summary_extract
+
+structured_agency
+
+structured_prefecture
+
+3. ユーザー操作ログ
+user_engagement_logs テーブルを使用：
+
+カラム：user_id, article_id, action_type, action_value
+
+action_type には "like", "ignore" など
+
+4. 記事情報
+表示には以下カラムが必要：
+
+article_id, structured_title, structured_agency, structured_prefecture
+
+structured_application_period.start
+
+structured_summary_extract, structured_amount_max
+
+published_at, detail_url
+
+🧱 推奨テーブル設計（UI側に必要な構成）
+### ✅ jnet_articles_public
+→ 記事マスタ：検索・表示対象
+
+カラム名	用途
+article_id (PK)	主キー（記事ID）
+structured_title	タイトル
+structured_agency	発行元
+structured_prefecture	対象都道府県
+structured_city	市区町村
+structured_area_full	「都道府県+市区町村」の完全文字列
+structured_summary_extract	概要
+structured_amount_max	上限金額
+structured_application_period	開始・終了日（json型）
+published_at	公開日
+detail_url	外部リンク
+
+✅ user_engagement_logs
+→ お気に入り・非表示などユーザー操作の記録
+
+カラム名	用途
+user_id	ユーザーID
+article_id	記事ID（外部キー）
+action_type	like / ignore など
+action_value	boolean
+created_at	操作日時（任意）
+
+onConflict: ['user_id', 'article_id', 'action_type'] で upsert
+
+✅ chat_sessions（支援申請セッション）
+カラム名	用途
+id	セッションID
+user_id	ユーザーID
+user_email	ユーザーEmail
+article_id	対象記事ID
+article_title_snippet	タイトルスニペット
+status	セッション状態（active）
+
+📊 管理側との整合を取るための条件比較の準備
+この UI の抽出条件と一致するよう、管理側（/api/news-match/broad-generate）でも：
+
+都道府県・市区町村に応じた記事を記録・集計しているか
+
+「全国」記事の取り扱いが一致しているか
+
+UI 側のような "match_by_city" 判定をどう実装するか
+
+を確認し、共通ロジックに統一していくことが重要です。

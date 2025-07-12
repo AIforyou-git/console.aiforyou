@@ -5,11 +5,14 @@ import { supabase } from "@/lib/supabaseClient"; // パスは適宜調整
 
 export default function EmailSettings() {
   const [matchByCity, setMatchByCity] = useState(true);
-  const [autoMailEnabled, setAutoMailEnabled] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [userId, setUserId] = useState(null); // ユーザーIDを後で取得
+  //const [autoMailEnabled, setAutoMailEnabled] = useState(false);
+  const [autoMailEnabled, setAutoMailEnabled] = useState(true); // デフォルトONに変更
 
-  // 初期データ取得
+  const [loading, setLoading] = useState(false);
+  const [userId, setUserId] = useState(null);
+  const [ccEmail1, setCcEmail1] = useState("");
+  const [ccEmail2, setCcEmail2] = useState("");
+
   useEffect(() => {
     const fetchSettings = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -17,13 +20,17 @@ export default function EmailSettings() {
 
       const { data, error } = await supabase
         .from("clients")
-        .select("match_by_city, auto_mail_enabled")
+        .select("match_by_city, auto_mail_enabled, cc_email_1, cc_email_2")
         .eq("uid", user.id)
         .single();
 
       if (data) {
         setMatchByCity(data.match_by_city ?? true);
         setAutoMailEnabled(data.auto_mail_enabled ?? false);
+        setCcEmail1(data.cc_email_1 ?? user.email); // 修正：初期値はアカウントメール
+        setCcEmail2(data.cc_email_2 ?? "");
+      } else {
+        setCcEmail1(user.email); // 修正：データがない場合も初期化
       }
     };
 
@@ -33,7 +40,6 @@ export default function EmailSettings() {
   const handleSave = async () => {
     setLoading(true);
 
-    // ✅ 市区町村チェックがONのとき、登録されていなければブロック
     if (matchByCity) {
       const { data, error } = await supabase
         .from("clients")
@@ -59,6 +65,8 @@ export default function EmailSettings() {
       .update({
         match_by_city: matchByCity,
         auto_mail_enabled: autoMailEnabled,
+        cc_email_1: ccEmail1, // 修正：保存処理に追加
+        cc_email_2: ccEmail2,
       })
       .eq("uid", userId);
 
@@ -75,7 +83,7 @@ export default function EmailSettings() {
       <h1 className="text-xl font-bold mb-4">メール設定</h1>
       <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
         <div>
-          <label className="block mb-1">自動送信　※準備中</label>
+          <label className="block mb-1">自動送信の設定　/ 初期設定は自動です</label>
           <select
             className="w-full p-2 border rounded"
             value={autoMailEnabled ? "on" : "off"}
@@ -86,15 +94,22 @@ export default function EmailSettings() {
           </select>
         </div>
 
-       {/* <div>
-          <label className="block mb-1">アンケート送信　※市区町村に差し替え</label>
-          <input type="text" className="w-full p-2 border rounded" placeholder="例: 満足度調査2025年春" />
-        </div>*/}
-
         <div>
-          <label className="block mb-1">CC追加（最大2人）※準備中</label>
-          <input type="email" className="w-full p-2 border rounded mb-2" placeholder="例: cc@example.com" />
-          <input type="email" className="w-full p-2 border rounded" placeholder="例: cc2@example.com" />
+          <label className="block mb-1">メール送信先　/　CC追加（最大2人）</label>
+          <input
+            type="email"
+            className="w-full p-2 border rounded mb-2"
+            placeholder="例: cc@example.com"
+            value={ccEmail1}
+            onChange={(e) => setCcEmail1(e.target.value)}
+          />
+          <input
+            type="email"
+            className="w-full p-2 border rounded"
+            placeholder="例: cc2@example.com"
+            value={ccEmail2}
+            onChange={(e) => setCcEmail2(e.target.value)}
+          />
         </div>
 
         {/* ✅ 市区町村マッチスイッチ 

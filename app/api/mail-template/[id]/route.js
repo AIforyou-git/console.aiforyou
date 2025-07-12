@@ -7,7 +7,7 @@ export async function GET(req, { params }) {
 
   const { data, error } = await supabaseAdmin
     .from('email_templates')
-    .select('*')
+    .select('id, title, subject, from_address, content, logo_url, created_at, updated_at')
     .eq('id', id)
     .single();
 
@@ -23,7 +23,7 @@ export async function GET(req, { params }) {
 export async function PUT(req, { params }) {
   const { id } = params;
   const body = await req.json();
-  const { title, content, logo_url } = body;
+  const { title, subject, from_address, content, logo_url } = body;
 
   if (!title || !content) {
     return NextResponse.json({ error: 'タイトルと本文は必須です' }, { status: 400 });
@@ -31,7 +31,14 @@ export async function PUT(req, { params }) {
 
   const { error } = await supabaseAdmin
     .from('email_templates')
-    .update({ title, content, logo_url })
+    .update({
+      title,
+      subject: subject || null,
+      from_address: from_address || null,
+      content,
+      logo_url: logo_url || null,
+      updated_at: new Date().toISOString(),
+    })
     .eq('id', id);
 
   if (error) {

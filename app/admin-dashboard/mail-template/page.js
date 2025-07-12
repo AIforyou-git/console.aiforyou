@@ -48,8 +48,16 @@ export default function MailTemplateListPage() {
               className="border px-4 py-2 rounded bg-white shadow-sm flex justify-between items-center"
             >
               <div>
-                <p className="font-semibold text-gray-800">{tpl.title || '(無題テンプレート)'}</p>
+                <p className="font-semibold text-gray-800">
+                  {tpl.title || '(無題テンプレート)'}
+                </p>
                 <p className="text-xs text-gray-500">ID: {tpl.id}</p>
+                <p className="text-xs text-gray-500">
+                  件名: {tpl.subject || '(未設定)'}
+                </p>
+                <p className="text-xs text-gray-500">
+                  送信元: {tpl.from_address || '(未設定)'}
+                </p>
               </div>
               <Link
                 href={`/admin-dashboard/mail-template/edit/${tpl.id}`}

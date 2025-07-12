@@ -46,8 +46,13 @@ export async function POST(req) {
     });
 
     if (authError || !user) {
-      throw new Error("Auth登録に失敗しました");
+      throw new Error("新規登録に失敗しました");
     }
+
+    if (authError?.message?.includes("User already registered")) {
+  return new Response(JSON.stringify({ error: "このメールアドレスは既に登録されています" }), { status: 400 });
+}
+
 
     const uid = user.user.id;
     const referralCodeSelf = generateShortReferralCode();

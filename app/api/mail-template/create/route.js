@@ -3,7 +3,7 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 export async function POST(req) {
   const body = await req.json();
-  const { title, content, logo_url } = body;
+  const { title, subject, from_address, content, logo_url } = body;
 
   if (!title || !content) {
     return NextResponse.json({ error: 'タイトルと本文は必須です' }, { status: 400 });
@@ -14,8 +14,12 @@ export async function POST(req) {
     .insert([
       {
         title,
+        subject: subject || null,
+        from_address: from_address || null,
         content,
         logo_url: logo_url || null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       },
     ]);
 

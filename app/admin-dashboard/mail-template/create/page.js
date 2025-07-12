@@ -9,6 +9,8 @@ const JoditEditor = dynamic(() => import('jodit-react'), { ssr: false });
 export default function MailTemplateCreatePage() {
   const router = useRouter();
   const [title, setTitle] = useState('');
+  const [subject, setSubject] = useState('');
+  const [fromAddress, setFromAddress] = useState('');
   const [content, setContent] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
 
@@ -16,7 +18,13 @@ export default function MailTemplateCreatePage() {
     const res = await fetch('/api/mail-template/create', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, content, logo_url: logoUrl }),
+      body: JSON.stringify({
+        title,
+        subject,
+        from_address: fromAddress,
+        content,
+        logo_url: logoUrl,
+      }),
     });
 
     if (res.ok) {
@@ -35,6 +43,20 @@ export default function MailTemplateCreatePage() {
         className="w-full border px-3 py-2 mb-4 rounded"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
+      />
+
+      <label className="block mb-2 text-sm">件名（subject）</label>
+      <input
+        className="w-full border px-3 py-2 mb-4 rounded"
+        value={subject}
+        onChange={(e) => setSubject(e.target.value)}
+      />
+
+      <label className="block mb-2 text-sm">送信元アドレス（from_address）</label>
+      <input
+        className="w-full border px-3 py-2 mb-4 rounded"
+        value={fromAddress}
+        onChange={(e) => setFromAddress(e.target.value)}
       />
 
       <label className="block mb-2 text-sm">本文（HTML可）</label>

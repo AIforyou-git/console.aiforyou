@@ -86,7 +86,10 @@ export default function ClientInfoForm({ onClose }) {
         industry: form.industry,
         uid: user.id,
         profile_completed: true,
-        updated_at: now
+        updated_at: now,
+        cc_email_1: user.email, // ✅ 初期値としてログインアドレスを設定
+        auto_mail_enabled: true // ✅ 初回登録時は自動送信ON
+        
       };
   
       let saveError = null;

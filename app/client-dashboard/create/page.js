@@ -166,13 +166,16 @@ setCityOptions(cities);
   try {
     const now = new Date().toISOString();
 
-    // ✅ region_full を構成
-    let regionFull = regionPrefecture || "";
-    if (regionPrefecture.includes("、") || regionPrefecture.includes(",") || regionPrefecture.includes("，")) {
-      regionFull = "全国"; // 都道府県が複数の場合は全国扱い
-    } else if (regionCity && regionCity.trim() !== "") {
-      regionFull = regionPrefecture + regionCity;
-    }
+    // ✅ region_full を構成（matchByCity = false の場合は null を保存）
+let regionFull = null;
+
+if (matchByCity) {
+  if (regionPrefecture.includes("、") || regionPrefecture.includes(",") || regionPrefecture.includes("，")) {
+    regionFull = "全国"; // 都道府県が複数の場合は全国扱い
+  } else if (regionCity && regionCity.trim() !== "") {
+    regionFull = regionPrefecture + regionCity;
+  }
+}
 
     const { error } = await supabase
   .from("clients")
@@ -182,6 +185,7 @@ setCityOptions(cities);
     position,
     name,
     region_prefecture: regionPrefecture,
+    
     region_city: regionCity,
     region_full: regionFull, // ✅ 追加保存
     industry: refinedPersonalCategory,     // ✅ 上書き保存

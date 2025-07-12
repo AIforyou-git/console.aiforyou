@@ -42,6 +42,8 @@ export default function EditMailTemplatePage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         title: template.title,
+        subject: template.subject,
+        from_address: template.from_address,
         content: template.content,
         logo_url: template.logo_url,
       }),
@@ -72,6 +74,24 @@ export default function EditMailTemplatePage() {
             className="w-full border px-3 py-2 rounded"
             value={template.title}
             onChange={(e) => setTemplate({ ...template, title: e.target.value })}
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium">件名</label>
+          <input
+            className="w-full border px-3 py-2 rounded"
+            value={template.subject || ''}
+            onChange={(e) => setTemplate({ ...template, subject: e.target.value })}
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium">送信元アドレス</label>
+          <input
+            className="w-full border px-3 py-2 rounded"
+            value={template.from_address || ''}
+            onChange={(e) => setTemplate({ ...template, from_address: e.target.value })}
           />
         </div>
 

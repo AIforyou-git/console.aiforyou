@@ -48,7 +48,7 @@ export default function Info() {
           <div className="text-blue-500 mb-2">
             <Send className="w-6 h-6" />
           </div>
-          <h3 className="text-lg font-semibold mb-1">配信対象の確認</h3>
+          <h3 className="text-lg font-semibold mb-1">配信対象の確認　※開発中</h3>
           <p className="text-sm text-gray-600">
             本日送信予定のクライアントと記事の組み合わせを確認
           </p>
@@ -67,17 +67,18 @@ export default function Info() {
           </p>
         </Link>
 
-        {/* ✅ 追加: マッチング一覧への遷移 */}
+       
+        {/* ✅ 追加: 新規マッチング一覧への遷移 */}
   <Link
-    href="/admin-dashboard/news-match"
+    href="/admin-dashboard/news-new"
     className="flex flex-col items-start bg-white shadow-md p-5 rounded-xl hover:bg-gray-50 transition"
   >
     <div className="text-purple-600 mb-2">
       <Send className="w-6 h-6" />
     </div>
-    <h3 className="text-lg font-semibold mb-1">マッチング管理</h3>
+    <h3 className="text-lg font-semibold mb-1">NEW マッチング管理　</h3>
     <p className="text-sm text-gray-600">
-      フェーズごとのマッチ結果を確認・比較・精査
+      最新情報を配信する為のマッチング
     </p>
   </Link>
       </div>

@@ -36,28 +36,38 @@ export async function POST(req) {
       },
     });
 
-    const loginUrl = "https://console.aiforyou.jp/";
-    const mailContent = `
-      ${email} 様
+    //const loginUrl = "https://console.aiforyou.jp/";
+   const loginUrl = `https://console.aiforyou.jp/login-sb?email=${encodeURIComponent(email)}&temp=${encodeURIComponent(tempPassword)}`;
 
-      Aiforyou へのご登録ありがとうございます。
+const mailContent = `
+${email} 様
 
-      以下の情報でログインし、アカウントの設定を行ってください。
+Aiforyou へのご登録ありがとうございます。
 
-      -------------------------------------
-      メールアドレス: ${email}
-      仮パスワード: ${tempPassword}
-      ログインURL: ${loginUrl}
-      -------------------------------------
+以下の情報でログインし、アカウントの設定を行ってください。
 
-      ※ログイン後、パスワードを変更することをおすすめします。
+-------------------------------------
+メールアドレス: ${email}
 
-      今後とも Aiforyou をよろしくお願いいたします。
+仮パスワード: ${tempPassword}
 
-      Aiforyou サポートチーム
-      開発用：http://localhost:3000/
-      開発用：http://localhost:3000/login-sb
-    `;
+ログインURL: https://console.aiforyou.jp/
+
+▼ワンクリックログインはこちら
+${loginUrl}
+（メールとパスワードを自動入力）
+-------------------------------------
+
+※ログイン後、パスワードを変更することをおすすめします。
+
+今後とも Aiforyou をよろしくお願いいたします。
+
+Aiforyou サポートチーム
+`;
+
+    //開発用：http://localhost:3000/
+      //開発用：http://localhost:3000/login-sb
+      //開発用：https://aiforrrt.jp.ngrok.io/login
 
     console.log("✉️ メール本文:", mailContent);
 
