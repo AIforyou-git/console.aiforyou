@@ -121,34 +121,41 @@ export default function LoginSBPage() {
             <p className="text-red-500 text-sm mb-4">{errorMessage}</p>
           )}
 
-          <div className="space-y-4 text-left">
-            <input
-              type="email"
-              placeholder="メールアドレス"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              disabled={isLoggingIn}
-              required
-            />
-            <input
-              type="password"
-              placeholder="パスワード"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              disabled={isLoggingIn}
-              required
-            />
-          </div>
+          <form
+  onSubmit={(e) => {
+    e.preventDefault();
+    handleLogin();
+  }}
+>
+  <div className="space-y-4 text-left">
+    <input
+      type="email"
+      placeholder="メールアドレス"
+      value={email}
+      onChange={(e) => setEmail(e.target.value)}
+      className="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+      disabled={isLoggingIn}
+      required
+    />
+    <input
+      type="password"
+      placeholder="パスワード"
+      value={password}
+      onChange={(e) => setPassword(e.target.value)}
+      className="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+      disabled={isLoggingIn}
+      required
+    />
+  </div>
 
-          <button
-            onClick={handleLogin}
-            disabled={isLoggingIn}
-            className="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded flex items-center justify-center gap-2 disabled:opacity-50"
-          >
-            {isLoggingIn ? 'ログイン中...' : 'ログイン'}
-          </button>
+  <button
+    type="submit"
+    disabled={isLoggingIn}
+    className="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded flex items-center justify-center gap-2 disabled:opacity-50"
+  >
+    {isLoggingIn ? 'ログイン中...' : 'ログイン'}
+  </button>
+</form>
 
           <p className="mt-4 text-sm">
             <a href="/login/recover" className="text-blue-600 hover:underline">

@@ -1,7 +1,6 @@
 // lib/stripeHandlers/invoice.ts
 import Stripe from "stripe";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { sendPaymentSuccessEmail } from "@/lib/email/sendPaymentSuccessEmail";
 
 export async function handleInvoiceEvent(event: Stripe.Event) {
   const invoice = event.data.object as Stripe.Invoice;
@@ -70,24 +69,4 @@ const invoiceRecord = {
   } else {
     console.log("✅ stripe_invoices upsert success:", invoice.id);
   }
-
-  // ✅ 支払い完了時のみメール送信
-  if (invoice.status === "paid" && userId) {
-    const customerEmail = invoice.customer_email ?? undefined;
-    const amount = invoice.amount_paid ?? 0;
-
-    try {
-      await sendPaymentSuccessEmail({
-        userId,
-        email: customerEmail,
-        amount,
-        invoiceId: invoice.id,
-        paidAt,
-      });
-      console.log("📤 決済完了メール送信成功:", customerEmail);
-    } catch (mailErr: any) {
-      console.error("❌ 決済完了メール送信失敗:", mailErr.message);
-    }
-  }
-
 }
